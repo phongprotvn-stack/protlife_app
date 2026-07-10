@@ -237,6 +237,15 @@ export default function PersonDetail({ person, events, memories, onBack, onDelet
         <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 2 }}>
           {person.gender === 'male' ? '♂ Nam' : person.gender === 'female' ? '♀ Nữ' : '⚧ Khác'}
         </div>
+        {/* Status & Favorite badges */}
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 6 }}>
+          {person.isFavorite && <span className="chip-tag" style={{ background: '#F59E0B' }}>🌟 Yêu thích</span>}
+          {person.status && person.status !== 'Active' && (
+            <span className="chip-tag" style={{
+              background: person.status === 'Deceased' ? '#374151' : person.status === 'Lost Contact' ? '#F59E0B' : person.status === 'Blocked' ? '#E6002D' : '#6366F1'
+            }}>{person.status}</span>
+          )}
+        </div>
       </div>
 
       {/* Relationship + Organizations badges */}
@@ -466,6 +475,32 @@ export default function PersonDetail({ person, events, memories, onBack, onDelet
                 </div>
                 <ScoreSelector value={editForm.relationshipScore}
                   onChange={v => setEditForm(p => ({ ...p, relationshipScore: v }))} />
+              </div>
+              {/* Trạng thái */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Trạng thái</div>
+                <select className="input-pill" value={editForm.status}
+                  onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))}>
+                  <option value="Active">Active</option>
+                  <option value="Lost Contact">Lost Contact</option>
+                  <option value="Deceased">Deceased</option>
+                  <option value="Blocked">Blocked</option>
+                </select>
+              </div>
+              {/* Yêu thích */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input type="checkbox" id="editFavToggle" checked={editForm.isFavorite}
+                  onChange={e => setEditForm(p => ({ ...p, isFavorite: e.target.checked }))}
+                  style={{ width: 20, height: 20, accentColor: '#E6002D' }} />
+                <label htmlFor="editFavToggle" style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  Yêu thích 🌟
+                </label>
+              </div>
+              {/* Nguồn */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Nguồn dữ liệu</div>
+                <input className="input-pill" placeholder="VD: Excel Import, Manual..."
+                  value={editForm.source || ''} onChange={e => setEditForm(p => ({ ...p, source: e.target.value }))} />
               </div>
               {/* Ghi chú */}
               <textarea className="input-pill" placeholder={t('people.notes', lang)}

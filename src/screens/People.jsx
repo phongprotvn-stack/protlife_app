@@ -34,7 +34,8 @@ function getEmptyPerson() {
     phones: [], emails: [], address: '',
     socialLinks: [{ ...DEFAULT_SOCIAL }],
     relationship: '', organization: '', organizations: [], groupIds: [],
-    relationshipScore: 0, notes: '', tags: [],
+    relationshipScore: 0, status: 'Active', isFavorite: false, source: '',
+    notes: '', tags: [],
     customGroup: '',
   };
 }
@@ -56,6 +57,9 @@ function normalizePerson(p) {
       : (p.organization ? [p.organization] : []),
     groupIds: Array.isArray(p.groupIds) ? [...p.groupIds] : (p.groupId ? [p.groupId] : []),
     relationshipScore: p.relationshipScore ?? 50,
+    status: p.status || 'Active',
+    isFavorite: p.isFavorite ?? false,
+    source: p.source || '',
     notes: p.notes || '',
     tags: p.tags || [],
     customGroup: '',
@@ -470,7 +474,8 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700 }}>Email</th>
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700 }}>Tổ chức</th>
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700 }}>Nhóm</th>
-                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700 }}>Nguồn gốc</th>
+                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700 }}>Trạng thái</th>
+                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700 }}>Nguồn</th>
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700 }}>Ghi chú</th>
               </tr>
             </thead>
@@ -479,13 +484,16 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
                 <tr key={p.id}
                   onClick={() => onSelectPerson(p.id)}
                   style={{ cursor: 'pointer', borderBottom: '1px solid #F3F4F6' }}>
-                  <td style={{ padding: '8px 10px', fontWeight: 600 }}>{p.name}</td>
+                  <td style={{ padding: '8px 10px', fontWeight: 600 }}>
+                    {p.isFavorite && <span style={{ marginRight: 4 }}>🌟</span>}{p.name}
+                  </td>
                   <td style={{ padding: '8px 10px' }}>{p.gender === 'male' ? 'Nam' : p.gender === 'female' ? 'Nữ' : 'Khác'}</td>
                   <td style={{ padding: '8px 10px' }}>{Array.isArray(p.phones) ? p.phones.join(', ') : p.phone || ''}</td>
                   <td style={{ padding: '8px 10px' }}>{p.dob ? formatDate(p.dob) : ''}</td>
                   <td style={{ padding: '8px 10px' }}>{Array.isArray(p.emails) ? p.emails[0] || '' : p.email || ''}</td>
                   <td style={{ padding: '8px 10px' }}>{p.organization || ''}</td>
                   <td style={{ padding: '8px 10px' }}>{p.relationship || (p.tags || []).map(t => t.nameVI || t.nameEN).join(', ')}</td>
+                  <td style={{ padding: '8px 10px' }}>{p.status || ''}</td>
                   <td style={{ padding: '8px 10px' }}>{p.source || ''}</td>
                   <td style={{ padding: '8px 10px', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.notes || ''}</td>
                 </tr>
@@ -530,8 +538,15 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {p.isFavorite && <span style={{ fontSize: 14 }}>🌟</span>}
                     <span style={{ fontSize: 15, fontWeight: 700 }}>{p.name}</span>
                     {p.relationship && <span className="chip-tag" style={{ background: '#6366F1', fontSize: 9, padding: '1px 6px' }}>{p.relationship}</span>}
+                    {p.status && p.status !== 'Active' && (
+                      <span className="chip-tag" style={{
+                        background: p.status === 'Deceased' ? '#374151' : p.status === 'Lost Contact' ? '#F59E0B' : p.status === 'Blocked' ? '#E6002D' : '#6366F1',
+                        fontSize: 9, padding: '1px 6px'
+                      }}>{p.status}</span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
                     {p.gender && <span style={{ fontSize: 11, color: '#9CA3AF' }}>{p.gender === 'male' ? '♂' : p.gender === 'female' ? '♀' : '⚧'}</span>}
@@ -652,6 +667,32 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
                 </div>
                 <ScoreSelector value={form.relationshipScore}
                   onChange={v => setForm(p => ({ ...p, relationshipScore: v }))} />
+              </div>
+              {/* Trạng thái */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Trạng thái</div>
+                <select className="input-pill" value={form.status}
+                  onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
+                  <option value="Active">Active</option>
+                  <option value="Lost Contact">Lost Contact</option>
+                  <option value="Deceased">Deceased</option>
+                  <option value="Blocked">Blocked</option>
+                </select>
+              </div>
+              {/* Yêu thích */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input type="checkbox" id="favToggle" checked={form.isFavorite}
+                  onChange={e => setForm(p => ({ ...p, isFavorite: e.target.checked }))}
+                  style={{ width: 20, height: 20, accentColor: '#E6002D' }} />
+                <label htmlFor="favToggle" style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  Yêu thích 🌟
+                </label>
+              </div>
+              {/* Nguồn */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Nguồn dữ liệu</div>
+                <input className="input-pill" placeholder="VD: Excel Import, Manual..."
+                  value={form.source} onChange={e => setForm(p => ({ ...p, source: e.target.value }))} />
               </div>
               {/* Tags (old-style) */}
               {tags.length > 0 && (

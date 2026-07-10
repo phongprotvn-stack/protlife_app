@@ -5,8 +5,17 @@ import { t, formatDate } from '../i18n';
 
 const EVENT_TYPES = ['wedding', 'birthday', 'travel', 'party', 'sport', 'meeting', 'dinner', 'other'];
 
+const MOOD_OPTIONS = ['', 'Happy', 'Normal', 'Sad', 'Excited', 'Tired', 'Angry', 'Thoughtful', 'Loved'];
+const IMPORTANCE_OPTIONS = ['', '1 - Lowest', '2 - Low', '3 - Medium', '4 - High', '5 - Highest'];
+const LIFE_STAGES = ['', 'Infancy', 'Childhood', 'Secondary School', 'High School', 'University', 'Early Career', 'Mid Career', 'Mature Career', 'Retirement'];
+const SOURCE_OPTIONS = ['', 'Memory', 'Manual', 'Google Calendar', 'Google Photos', 'Facebook', 'Messenger', 'Zalo', 'Email', 'SMS', 'Document', 'ChatGPT', 'Google Timeline'];
+
 function getEmptyForm() {
-  return { title: '', date: '', eventType: '', peopleIds: [], locationName: '', notes: '' };
+  return {
+    title: '', date: '', endDate: '', eventType: '', mood: '', importance: '',
+    lifeStage: '', source: '', cost: 0, mapLink: '',
+    peopleIds: [], locationName: '', notes: '',
+  };
 }
 
 export default function Events({ events, people, places, addEvent, updateEvent, deleteEvent }) {
@@ -63,7 +72,14 @@ export default function Events({ events, people, places, addEvent, updateEvent, 
     setForm({
       title: e.title || '',
       date: e.date || '',
+      endDate: e.endDate || '',
       eventType: e.eventType || '',
+      mood: e.mood || '',
+      importance: e.importance || '',
+      lifeStage: e.lifeStage || '',
+      source: e.source || '',
+      cost: e.cost ?? 0,
+      mapLink: e.mapLink || '',
       peopleIds: e.peopleIds || [],
       locationName: e.locationName || '',
       notes: e.notes || '',
@@ -150,10 +166,17 @@ export default function Events({ events, people, places, addEvent, updateEvent, 
                     {eventEmoji(e.eventType)}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700 }}>{e.title}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>{e.title}</div>
+                      {e.mood && <span style={{ fontSize: 11, color: '#9CA3AF' }}>· {e.mood}</span>}
+                      {e.importance && <span className="chip-tag" style={{ fontSize: 9, padding: '1px 6px', background: e.importance?.includes('Highest') ? '#E6002D' : e.importance?.includes('High') ? '#F59E0B' : '#9CA3AF' }}>{e.importance}</span>}
+                    </div>
                     <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
                       {e.date && <span>{formatDate(e.date)}</span>}
+                      {e.endDate && <span> → {formatDate(e.endDate)}</span>}
                       {e.eventType && <span> · {t(`events.${e.eventType}`, lang)}</span>}
+                      {e.lifeStage && <span> · {e.lifeStage}</span>}
+                      {e.source && <span> · 📌 {e.source}</span>}
                     </div>
                     {eventPeople.length > 0 && (
                       <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
@@ -168,6 +191,16 @@ export default function Events({ events, people, places, addEvent, updateEvent, 
                     {e.locationName && (
                       <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <MapPin size={12} /> {e.locationName}
+                      </div>
+                    )}
+                    {e.cost > 0 && (
+                      <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                        💰 {e.cost.toLocaleString()}đ
+                      </div>
+                    )}
+                    {e.mapLink && (
+                      <div style={{ fontSize: 11, color: '#3B82F6', marginTop: 2 }}>
+                        🔗 {e.mapLink}
                       </div>
                     )}
                   </div>
@@ -193,6 +226,11 @@ export default function Events({ events, people, places, addEvent, updateEvent, 
                 onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
               <input className="input-pill" type="date" placeholder={t('events.date', lang)} value={form.date}
                 onChange={e => setForm(p => ({ ...p, date: e.target.value }))} />
+              <input className="input-pill" type="date" placeholder="Ngày kết thúc" value={form.endDate}
+                onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} />
+              {/* Cost */}
+              <input className="input-pill" type="number" placeholder="Chi phí (VNĐ)" value={form.cost}
+                onChange={e => setForm(p => ({ ...p, cost: parseInt(e.target.value) || 0 }))} />
 
               {/* Event type */}
               <div>
@@ -206,6 +244,41 @@ export default function Events({ events, people, places, addEvent, updateEvent, 
                   ))}
                 </div>
               </div>
+
+              {/* Mood + Importance + LifeStage + Source row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Tâm trạng</div>
+                  <select className="input-pill" value={form.mood}
+                    onChange={e => setForm(p => ({ ...p, mood: e.target.value }))}>
+                    {MOOD_OPTIONS.map(m => <option key={m} value={m}>{m || '-- Chọn --'}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Mức độ</div>
+                  <select className="input-pill" value={form.importance}
+                    onChange={e => setForm(p => ({ ...p, importance: e.target.value }))}>
+                    {IMPORTANCE_OPTIONS.map(i => <option key={i} value={i}>{i || '-- Chọn --'}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Giai đoạn cuộc sống</div>
+                  <select className="input-pill" value={form.lifeStage}
+                    onChange={e => setForm(p => ({ ...p, lifeStage: e.target.value }))}>
+                    {LIFE_STAGES.map(ls => <option key={ls} value={ls}>{ls || '-- Chọn --'}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Nguồn</div>
+                  <select className="input-pill" value={form.source}
+                    onChange={e => setForm(p => ({ ...p, source: e.target.value }))}>
+                    {SOURCE_OPTIONS.map(s => <option key={s} value={s}>{s || '-- Chọn --'}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Map link */}
+              <input className="input-pill" placeholder="Link Google Maps (tuỳ chọn)" value={form.mapLink}
+                onChange={e => setForm(p => ({ ...p, mapLink: e.target.value }))} />
 
               {/* People selector */}
               <div>

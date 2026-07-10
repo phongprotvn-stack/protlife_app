@@ -325,7 +325,14 @@ export function AppProvider({ children }) {
 
   // ─── CRUD: People (all writes go through API) ───
   const addPerson = useCallback(async (person) => {
-    const p = { ...person, id: genId(), createdAt: new Date().toISOString() };
+    const p = {
+      ...person,
+      id: genId(),
+      createdAt: new Date().toISOString(),
+      status: person.status || 'Active',
+      isFavorite: person.isFavorite ?? false,
+      source: person.source || '',
+    };
     setPeople(prev => [...prev, p]); // optimistic local update
     try {
       const result = await apiPeople.create(p);
@@ -379,7 +386,18 @@ export function AppProvider({ children }) {
 
   // ─── CRUD: Events ───
   const addEvent = useCallback(async (event) => {
-    const e = { ...event, id: genId(), createdAt: new Date().toISOString() };
+    const e = {
+      ...event,
+      id: genId(),
+      createdAt: new Date().toISOString(),
+      endDate: event.endDate || '',
+      mood: event.mood || '',
+      importance: event.importance || '',
+      lifeStage: event.lifeStage || '',
+      source: event.source || '',
+      cost: event.cost ?? 0,
+      mapLink: event.mapLink || '',
+    };
     setEvents(prev => [...prev, e]);
     try {
       const result = await apiEvents.create(e);
