@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 const router = Router();
 const SECRET = 'protlife-import-2026';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_PATH = path.resolve(__dirname, '../../public/import-data.json');
+const DATA_PATH = path.resolve(process.cwd(), 'public/import-data.json');
 
 router.get('/', async (req, res) => {
   if (req.query.secret !== SECRET) {
