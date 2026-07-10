@@ -600,7 +600,15 @@ export function AppProvider({ children }) {
     try {
       await fbSignInGoogle();
     } catch (e) {
-      showToast(lang === 'vi' ? 'Đăng nhập thất bại' : 'Login failed');
+      console.error('🔥 Google Sign-In error:', e.code, e.message);
+      const msg = lang === 'vi'
+        ? (e.code === 'auth/operation-not-allowed'
+          ? 'Google Sign-In chưa được bật trong Firebase Console'
+          : e.code === 'auth/unauthorized-domain'
+          ? 'Domain chưa được cho phép trong Firebase Auth'
+          : 'Đăng nhập thất bại: ' + e.message)
+        : 'Login failed: ' + e.message;
+      showToast(msg);
       throw e;
     }
   }, [showToast, lang]);

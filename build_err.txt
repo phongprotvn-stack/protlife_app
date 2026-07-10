@@ -1,0 +1,7 @@
+[33m[33m[INEFFECTIVE_DYNAMIC_IMPORT] [0mnode_modules/firebase/firestore/dist/esm/index.esm.js is dynamically imported by src/firebase/firebase.js but also statically imported by src/firebase/firebase.js, dynamic import will not move module into another chunk.
+[39m
+[33m[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
