@@ -7,7 +7,6 @@ import memoriesRoutes from './routes/memories.js';
 import placesRoutes from './routes/places.js';
 import groupsRoutes from './routes/groups.js';
 import importRoutes from './routes/import.js';
-import doImportRoutes from './routes/do-import.js';
 import exportRoutes from './routes/export.js';
 import { verifyToken } from './middleware/auth.js';
 
@@ -29,7 +28,6 @@ app.use('/api/memories', verifyToken, memoriesRoutes);
 app.use('/api/places', verifyToken, placesRoutes);
 app.use('/api/groups', verifyToken, groupsRoutes);
 app.use('/api/import', verifyToken, importRoutes);
-app.use('/api/do-import', doImportRoutes);
 app.use('/api/export', verifyToken, exportRoutes);
 
 // Error handler

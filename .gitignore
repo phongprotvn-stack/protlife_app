@@ -27,3 +27,7 @@ yarn-error.log*
 
 .vercel
 .env*
+public/import-data.json
+scripts/protlife_import_data.json
+scripts/import_firestore.cjs
+scripts/import_rest.cjs
