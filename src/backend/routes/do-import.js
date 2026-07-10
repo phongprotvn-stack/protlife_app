@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
       console.log(`Found user ${ADMIN_EMAIL} -> UID: ${uid}, admin claims set`);
     } catch (lookupErr) {
       uid = ADMIN_EMAIL;
-      console.warn(`User ${ADMIN_EMAIL} not found in Auth, using email as UID`);
+      console.error(`Failed to look up user by email: ${lookupErr.message}`, lookupErr);
     }
 
     if (!fs.existsSync(DATA_PATH)) {
