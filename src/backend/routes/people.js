@@ -30,15 +30,14 @@ router.get('/:id', async (req, res, next) => {
 // POST /api/people — create (admin/editor only)
 router.post('/', requireRole(ROLES.EDITOR), async (req, res, next) => {
   try {
-    const { id, name, relationship, phones, emails, dob, organization, tags, relationshipScore, note } = req.body;
-    if (!name) return res.status(400).json({ error: 'Name is required' });
+    const { id } = req.body;
+    if (!req.body.name) return res.status(400).json({ error: 'Name is required' });
     if (!id) return res.status(400).json({ error: 'Missing id' });
     const data = {
-      name, relationship: relationship || '', phones: phones || '', emails: emails || '',
-      dob: dob || '', organization: organization || '', tags: tags || [],
-      relationshipScore: relationshipScore || 50, note: note || '',
+      ...req.body,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
+    delete data.id;
     await userCol(req.user.uid).doc(id).set(data);
     res.status(201).json({ id, ...data });
   } catch (err) { next(err); }

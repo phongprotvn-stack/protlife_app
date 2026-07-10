@@ -25,9 +25,10 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/', requireRole(ROLES.EDITOR), async (req, res, next) => {
   try {
-    const data = { ...req.body, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-    const id = data.id || req.body.id;
+    const { id } = req.body;
     if (!id) return res.status(400).json({ error: 'Missing id' });
+    const data = { ...req.body, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    delete data.id;
     await col(req.user.uid).doc(id).set(data);
     res.status(201).json({ ...data, id });
   } catch (err) { next(err); }
