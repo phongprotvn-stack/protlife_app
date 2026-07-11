@@ -29,12 +29,15 @@ export default function Events({ events, people, places, memories, addEvent, upd
 
   const [personSearch, setPersonSearch] = useState('');
   const [placeSuggestions, setPlaceSuggestions] = useState([]);
+  const [selectedPlace, setSelectedPlace] = useState(null); // { lat, lon, display_name }
   const searchTimeout = useRef(null);
 
   const handlePlaceSearch = (text) => {
     setForm(p => ({ ...p, locationName: text }));
+    // Clear selected place when user re-types
+    if (text !== selectedPlace?.display_name) setSelectedPlace(null);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    if (!text || text.length < 3) { setPlaceSuggestions([]); return; }
+    if (!text || text.length < 2) { setPlaceSuggestions([]); return; }
     searchTimeout.current = setTimeout(async () => {
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(text)}`);
@@ -42,6 +45,25 @@ export default function Events({ events, people, places, memories, addEvent, upd
         setPlaceSuggestions(data);
       } catch (e) {}
     }, 500);
+  };
+
+  const selectPlace = (suggestion) => {
+    const lat = suggestion.lat;
+    const lon = suggestion.lon;
+    const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
+    setForm(prev => ({
+      ...prev,
+      locationName: suggestion.display_name,
+      mapLink: mapLink,
+    }));
+    setSelectedPlace({ lat: parseFloat(lat), lon: parseFloat(lon), display_name: suggestion.display_name });
+    setPlaceSuggestions([]);
+  };
+
+  const clearPlace = () => {
+    setForm(prev => ({ ...prev, locationName: '', mapLink: '' }));
+    setSelectedPlace(null);
+    setPlaceSuggestions([]);
   };
 
   const filteredPeople = useMemo(() => {
@@ -306,41 +328,90 @@ export default function Events({ events, people, places, memories, addEvent, upd
                 </div>
               </div>
 
-              {/* ─── Location + Google Maps Link (combined) ─── */}
+              {/* ─── Location with Google Maps autolink + preview ─── */}
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
                   📍 {t('events.place', lang)}
                 </div>
-                <div style={{ position: 'relative' }}>
-                  <MapPin size={16} color="#9CA3AF" style={{ position: 'absolute', left: 12, top: 12 }} />
-                  <input className="input-pill" style={{ paddingLeft: 36 }}
-                    placeholder={lang === 'vi' ? 'Tìm địa điểm...' : 'Search location...'}
-                    value={form.locationName} onChange={e => handlePlaceSearch(e.target.value)} />
-                  {placeSuggestions.length > 0 && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff',
-                      borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', zIndex: 10, marginTop: 4, padding: 4, maxHeight: 200, overflowY: 'auto'
-                    }}>
-                      {placeSuggestions.map(s => (
-                        <div key={s.place_id} style={{ padding: '10px 12px', fontSize: 13, cursor: 'pointer', borderRadius: 8, borderBottom: '1px solid #F3F4F6' }}
-                          onMouseEnter={e => e.target.style.background = '#F3F4F6'}
-                          onMouseLeave={e => e.target.style.background = 'transparent'}
-                          onClick={() => {
-                            setForm(prev => ({ ...prev, locationName: s.display_name }));
-                            setPlaceSuggestions([]);
-                          }}>
-                          {s.display_name}
-                        </div>
-                      ))}
+
+                {selectedPlace ? (
+                  /* ─── Selected place view ─── */
+                  <div style={{ borderRadius: 12, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+                    {/* Address bar */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: '#F9FAFB' }}>
+                      <MapPin size={16} color="#10B981" style={{ marginTop: 2, flexShrink: 0 }} />
+                      <div style={{ flex: 1, fontSize: 13, color: '#374151', lineHeight: 1.4 }}>{selectedPlace.display_name}</div>
+                      <span onClick={clearPlace} style={{ fontSize: 16, cursor: 'pointer', opacity: 0.3, padding: 2, flexShrink: 0 }}>✕</span>
                     </div>
-                  )}
-                </div>
-                {/* Google Maps Link — directly below location */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', whiteSpace: 'nowrap' }}>🔗 Google Maps:</span>
-                  <input className="input-pill" style={{ flex: 1, fontSize: 12 }} placeholder="https://maps.google.com/..." value={form.mapLink}
-                    onChange={e => setForm(p => ({ ...p, mapLink: e.target.value }))} />
-                </div>
+
+                    {/* Mini map preview via static OSM image (free, no key) */}
+                    <div style={{ position: 'relative' }}>
+                      <img
+                        src={`https://staticmap.openstreetmap.de/staticmap.php?center=${selectedPlace.lat},${selectedPlace.lon}&zoom=15&size=600x140&markers=${selectedPlace.lat},${selectedPlace.lon}`}
+                        alt="Map"
+                        style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+                        onError={e => { e.target.style.display = 'none'; }}
+                      />
+                    </div>
+
+                    {/* Actions bar */}
+                    <div style={{ display: 'flex', gap: 6, padding: '8px 12px', borderTop: '1px solid #E5E7EB', background: '#F9FAFB' }}>
+                      <a href={form.mapLink} target="_blank" rel="noopener noreferrer"
+                        style={{
+                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                          padding: '6px 12px', borderRadius: 8, background: '#4285F4', color: '#fff',
+                          fontSize: 12, fontWeight: 600, textDecoration: 'none',
+                        }}>
+                        🌐 {lang === 'vi' ? 'Mở trong Google Maps' : 'Open in Google Maps'}
+                      </a>
+                      <span onClick={() => {
+                        const url = prompt(lang === 'vi' ? 'Nhập link Google Maps:' : 'Enter Google Maps URL:', form.mapLink);
+                        if (url) setForm(prev => ({ ...prev, mapLink: url }));
+                      }}
+                        style={{ padding: '6px 12px', borderRadius: 8, background: '#F3F4F6', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        ✏️ Sửa link
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* ─── Search mode ─── */
+                  <div style={{ position: 'relative' }}>
+                    <MapPin size={16} color="#9CA3AF" style={{ position: 'absolute', left: 12, top: 12 }} />
+                    <input className="input-pill" style={{ paddingLeft: 36 }}
+                      placeholder={lang === 'vi' ? 'Gõ tìm địa điểm trên Google Maps...' : 'Search Google Maps for a place...'}
+                      value={form.locationName} onChange={e => handlePlaceSearch(e.target.value)} />
+                    {placeSuggestions.length > 0 && (
+                      <div style={{
+                        position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff',
+                        borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', zIndex: 10, marginTop: 4, padding: 4, maxHeight: 220, overflowY: 'auto'
+                      }}>
+                        {placeSuggestions.map(s => (
+                          <div key={s.place_id} style={{ padding: '10px 12px', fontSize: 13, cursor: 'pointer', borderRadius: 8, borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'flex-start', gap: 8 }}
+                            onMouseEnter={e => e.target.style.background = '#F3F4F6'}
+                            onMouseLeave={e => e.target.style.background = 'transparent'}
+                            onClick={() => selectPlace(s)}>
+                            <MapPin size={14} color="#9CA3AF" style={{ marginTop: 2, flexShrink: 0 }} />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{s.display_name.split(',')[0]}</div>
+                              <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>{s.display_name.split(',').slice(1).join(',').trim()}</div>
+                              <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>📍 {parseFloat(s.lat).toFixed(4)}, {parseFloat(s.lon).toFixed(4)}</div>
+                            </div>
+                            <span style={{ fontSize: 11, color: '#4285F4', whiteSpace: 'nowrap', fontWeight: 600 }}>Chọn →</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Manual map link fallback */}
+                    {form.mapLink && !selectedPlace && (
+                      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: '#F9FAFB', borderRadius: 8 }}>
+                        <a href={form.mapLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#4285F4', textDecoration: 'underline', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          🔗 {form.mapLink}
+                        </a>
+                        <span onClick={() => setForm(prev => ({ ...prev, mapLink: '' }))} style={{ fontSize: 14, cursor: 'pointer', opacity: 0.3 }}>✕</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* ─── Cost ─── */}
