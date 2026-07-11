@@ -148,9 +148,9 @@ export default function App() {
       case 'people':
         return <People people={people} tags={tags} groups={groups} onSelectPerson={showPerson} addPerson={addPerson} updatePerson={updatePerson} addGroup={addGroup} updateGroup={updateGroup} deleteGroup={deleteGroup} />;
       case 'events':
-        return <Events events={events} people={people} places={places} addEvent={addEvent} updateEvent={updateEvent} deleteEvent={deleteEvent} />;
+        return <Events events={events} people={people} places={places} memories={memories} addEvent={addEvent} updateEvent={updateEvent} deleteEvent={deleteEvent} />;
       case 'memories':
-        return <Memories memories={memories} people={people} places={places} addMemory={addMemory} updateMemory={updateMemory} deleteMemory={deleteMemory} />;
+        return <Memories memories={memories} people={people} places={places} events={events} addMemory={addMemory} updateMemory={updateMemory} deleteMemory={deleteMemory} />;
       case 'settings':
         return <Settings />;
       default:

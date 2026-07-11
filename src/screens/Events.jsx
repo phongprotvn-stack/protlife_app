@@ -18,7 +18,7 @@ function getEmptyForm() {
   };
 }
 
-export default function Events({ events, people, places, addEvent, updateEvent, deleteEvent }) {
+export default function Events({ events, people, places, memories, addEvent, updateEvent, deleteEvent }) {
   const { lang } = useApp();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState(null);
@@ -168,6 +168,14 @@ export default function Events({ events, people, places, addEvent, updateEvent, 
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <div style={{ fontSize: 15, fontWeight: 700 }}>{e.title}</div>
+                      {(() => {
+                        const count = (memories || []).filter(m => m.eventId === e.id).length;
+                        return count > 0 ? (
+                          <span style={{ fontSize: 10, background: '#EEF2FF', color: '#4F46E5', padding: '1px 8px', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                            📝 {count}
+                          </span>
+                        ) : null;
+                      })()}
                       {e.mood && <span style={{ fontSize: 11, color: '#9CA3AF' }}>· {e.mood}</span>}
                       {e.importance && <span className="chip-tag" style={{ fontSize: 9, padding: '1px 6px', background: e.importance?.includes('Highest') ? '#E6002D' : e.importance?.includes('High') ? '#F59E0B' : '#9CA3AF' }}>{e.importance}</span>}
                     </div>

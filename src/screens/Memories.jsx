@@ -10,7 +10,7 @@ const MOOD_EMOJIS = {
   grateful: '🙏', inspired: '✨', sad: '😢', loved: '🥰',
 };
 
-export default function Memories({ memories, people, places, addMemory, updateMemory, deleteMemory }) {
+export default function Memories({ memories, people, places, events, addMemory, updateMemory, deleteMemory }) {
   const { lang } = useApp();
   const [search, setSearch] = useState('');
   const [moodFilter, setMoodFilter] = useState(null);
@@ -18,7 +18,7 @@ export default function Memories({ memories, people, places, addMemory, updateMe
   const [form, setForm] = useState(getEmptyForm());
 
   function getEmptyForm() {
-    return { title: '', content: '', date: '', mood: '', peopleIds: [], placeId: '', photos: [] };
+    return { title: '', content: '', date: '', mood: '', peopleIds: [], placeId: '', eventId: '', photos: [] };
   }
 
   const filtered = useMemo(() => {
@@ -100,14 +100,38 @@ export default function Memories({ memories, people, places, addMemory, updateMe
                 position: 'relative',
               }}
                 onClick={() => {
-                  if (confirm(lang === 'vi' ? 'Xoá ký ức này?' : 'Delete this memory?')) {
-                    deleteMemory(m.id);
-                  }
+                  // Toggle edit mode — just show content for now
+                  const linkedEvent = m.eventId ? events.find(e => e.id === m.eventId) : null;
+                  const info = [
+                    m.date ? `📅 ${formatDate(m.date)}` : '',
+                    linkedEvent ? `📌 ${linkedEvent.title}` : '',
+                    memoryPlace ? `📍 ${memoryPlace.name}` : '',
+                  ].filter(Boolean).join(' · ');
+                  const msg = [
+                    `📝 ${m.title}`,
+                    info ? `\n${info}` : '',
+                    m.content ? `\n\n${m.content}` : '',
+                    memoryPeople.length ? `\n\n👥 ${memoryPeople.map(p => p.name).join(', ')}` : '',
+                  ].join('');
+                  alert(msg);
                 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ fontSize: 28, flexShrink: 0 }}>{MOOD_EMOJIS[m.mood] || '💭'}</div>
+                  <div style={{
+                    fontSize: 28, flexShrink: 0, width: 44, height: 44, borderRadius: 12,
+                    background: `${moodColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{MOOD_EMOJIS[m.mood] || '💭'}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700 }}>{m.title}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>{m.title}</div>
+                      {m.eventId && (() => {
+                        const linkedEvent = events.find(e => e.id === m.eventId);
+                        return linkedEvent ? (
+                          <span style={{ fontSize: 10, background: '#EEF2FF', color: '#4F46E5', padding: '1px 8px', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                            📌 {linkedEvent.title}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
                     {m.date && <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{formatDate(m.date)}</div>}
                     {m.content && (
                       <div style={{ fontSize: 13, color: '#6B7280', marginTop: 6, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -127,7 +151,6 @@ export default function Memories({ memories, people, places, addMemory, updateMe
                     {memoryPlace && (
                       <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>📍 {memoryPlace.name}</div>
                     )}
-                    {/* Mood tag */}
                     <div style={{
                       display: 'inline-block', marginTop: 8,
                       fontSize: 10, fontWeight: 700, color: moodColor,
@@ -135,6 +158,14 @@ export default function Memories({ memories, people, places, addMemory, updateMe
                       padding: '2px 10px', borderRadius: 10,
                     }}>
                       {MOOD_EMOJIS[m.mood]} {t(`memories.mood${m.mood.charAt(0).toUpperCase() + m.mood.slice(1)}`, lang)}
+                    </div>
+                    {/* Delete button */}
+                    <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
+                      <span style={{ fontSize: 16, cursor: 'pointer', opacity: 0.4, padding: 4 }}
+                        onClick={e => { e.stopPropagation(); deleteMemory(m.id); }}
+                        title={lang === 'vi' ? 'Xoá' : 'Delete'}>
+                        ✕
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -197,6 +228,16 @@ export default function Memories({ memories, people, places, addMemory, updateMe
                 <option value="">{t('memories.place', lang)} — {t('common.optional', lang)}</option>
                 {places.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
+
+              {/* Event selector */}
+              {events && events.length > 0 && (
+                <select className="input-pill" value={form.eventId} onChange={e => setForm(p => ({ ...p, eventId: e.target.value }))}>
+                  <option value="">📌 {t('memories.linkEvent', lang) || 'Gắn với sự kiện'} — tuỳ chọn</option>
+                  {events.sort((a, b) => (b.date || '') > (a.date || '') ? 1 : -1).map(e => (
+                    <option key={e.id} value={e.id}>📅 {e.title} {e.date ? `(${e.date})` : ''}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
