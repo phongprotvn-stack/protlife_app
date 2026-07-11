@@ -229,20 +229,36 @@ export default function Events({ events, people, places, memories, addEvent, upd
               {editingEvent ? 'Chỉnh sửa sự kiện' : t('events.addEvent', lang)}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <input className="input-pill" placeholder={t('events.eventTitle', lang)} value={form.title}
-                onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
-              <input className="input-pill" type="date" placeholder={t('events.date', lang)} value={form.date}
-                onChange={e => setForm(p => ({ ...p, date: e.target.value }))} />
-              <input className="input-pill" type="date" placeholder="Ngày kết thúc" value={form.endDate}
-                onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} />
-              {/* Cost */}
-              <input className="input-pill" type="number" placeholder="Chi phí (VNĐ)" value={form.cost}
-                onChange={e => setForm(p => ({ ...p, cost: parseInt(e.target.value) || 0 }))} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              {/* Event type */}
+              {/* ─── Event Name ─── */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 8 }}>{t('events.eventType', lang)}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                  📝 {t('events.eventTitle', lang)}
+                </div>
+                <input className="input-pill" placeholder={lang === 'vi' ? 'Nhập tên sự kiện...' : 'Enter event name...'} value={form.title}
+                  onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
+              </div>
+
+              {/* ─── Date Range ─── */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                  📅 {t('events.date', lang)}
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className="input-pill" type="date" style={{ flex: 1 }} placeholder="Ngày bắt đầu" value={form.date}
+                    onChange={e => setForm(p => ({ ...p, date: e.target.value }))} />
+                  <span style={{ color: '#9CA3AF', fontSize: 12, fontWeight: 600 }}>→</span>
+                  <input className="input-pill" type="date" style={{ flex: 1 }} placeholder="Ngày kết thúc" value={form.endDate}
+                    onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} />
+                </div>
+              </div>
+
+              {/* ─── Event Type ─── */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                  🏷️ {t('events.eventType', lang)}
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {EVENT_TYPES.map(tp => (
                     <div key={tp} className={`chip ${form.eventType === tp ? 'active' : ''}`}
@@ -253,82 +269,48 @@ export default function Events({ events, people, places, memories, addEvent, upd
                 </div>
               </div>
 
-              {/* Mood + Importance + LifeStage + Source row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Tâm trạng</div>
-                  <select className="input-pill" value={form.mood}
-                    onChange={e => setForm(p => ({ ...p, mood: e.target.value }))}>
-                    {MOOD_OPTIONS.map(m => <option key={m} value={m}>{m || '-- Chọn --'}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Mức độ</div>
-                  <select className="input-pill" value={form.importance}
-                    onChange={e => setForm(p => ({ ...p, importance: e.target.value }))}>
-                    {IMPORTANCE_OPTIONS.map(i => <option key={i} value={i}>{i || '-- Chọn --'}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Giai đoạn cuộc sống</div>
-                  <select className="input-pill" value={form.lifeStage}
-                    onChange={e => setForm(p => ({ ...p, lifeStage: e.target.value }))}>
-                    {LIFE_STAGES.map(ls => <option key={ls} value={ls}>{ls || '-- Chọn --'}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Nguồn</div>
-                  <select className="input-pill" value={form.source}
-                    onChange={e => setForm(p => ({ ...p, source: e.target.value }))}>
-                    {SOURCE_OPTIONS.map(s => <option key={s} value={s}>{s || '-- Chọn --'}</option>)}
-                  </select>
-                </div>
-              </div>
-              {/* Map link */}
-              <input className="input-pill" placeholder="Link Google Maps (tuỳ chọn)" value={form.mapLink}
-                onChange={e => setForm(p => ({ ...p, mapLink: e.target.value }))} />
-
-              {/* People selector */}
+              {/* ─── Mood + Importance + LifeStage + Source ─── */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 8 }}>{t('events.people', lang)}</div>
-                {form.peopleIds.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                    {form.peopleIds.map(id => {
-                      const p = people.find(x => x.id === id);
-                      if (!p) return null;
-                      return (
-                        <div key={id} className="chip active" onClick={() => setForm(prev => ({ ...prev, peopleIds: prev.peopleIds.filter(x => x !== id) }))}>
-                          {p.name} <X size={14} style={{ marginLeft: 4 }} />
-                        </div>
-                      );
-                    })}
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                  🎭 Chi tiết cảm xúc
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', marginBottom: 3 }}>Tâm trạng</div>
+                    <select className="input-pill" value={form.mood}
+                      onChange={e => setForm(p => ({ ...p, mood: e.target.value }))}>
+                      {MOOD_OPTIONS.map(m => <option key={m} value={m}>{m || '-- Chọn --'}</option>)}
+                    </select>
                   </div>
-                )}
-                <div style={{ position: 'relative' }}>
-                  <Search size={16} color="#9CA3AF" style={{ position: 'absolute', left: 12, top: 12 }} />
-                  <input className="input-pill" style={{ paddingLeft: 36 }} placeholder={lang === 'vi' ? 'Tìm người tham gia...' : 'Search people...'}
-                    value={personSearch} onChange={e => setPersonSearch(e.target.value)} />
-                  {filteredPeople.length > 0 && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff',
-                      borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, marginTop: 4, padding: 4
-                    }}>
-                      {filteredPeople.map(p => (
-                        <div key={p.id} style={{ padding: '10px 12px', fontSize: 14, cursor: 'pointer', borderRadius: 8 }}
-                          onMouseEnter={e => e.target.style.background = '#F3F4F6'}
-                          onMouseLeave={e => e.target.style.background = 'transparent'}
-                          onClick={() => { setForm(prev => ({ ...prev, peopleIds: [...prev.peopleIds, p.id] })); setPersonSearch(''); }}>
-                          {p.name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', marginBottom: 3 }}>Mức độ</div>
+                    <select className="input-pill" value={form.importance}
+                      onChange={e => setForm(p => ({ ...p, importance: e.target.value }))}>
+                      {IMPORTANCE_OPTIONS.map(i => <option key={i} value={i}>{i || '-- Chọn --'}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', marginBottom: 3 }}>Giai đoạn cuộc sống</div>
+                    <select className="input-pill" value={form.lifeStage}
+                      onChange={e => setForm(p => ({ ...p, lifeStage: e.target.value }))}>
+                      {LIFE_STAGES.map(ls => <option key={ls} value={ls}>{ls || '-- Chọn --'}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', marginBottom: 3 }}>Nguồn</div>
+                    <select className="input-pill" value={form.source}
+                      onChange={e => setForm(p => ({ ...p, source: e.target.value }))}>
+                      {SOURCE_OPTIONS.map(s => <option key={s} value={s}>{s || '-- Chọn --'}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              {/* Place selector */}
+              {/* ─── Location + Google Maps Link (combined) ─── */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 8 }}>{t('events.place', lang)}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                  📍 {t('events.place', lang)}
+                </div>
                 <div style={{ position: 'relative' }}>
                   <MapPin size={16} color="#9CA3AF" style={{ position: 'absolute', left: 12, top: 12 }} />
                   <input className="input-pill" style={{ paddingLeft: 36 }}
@@ -343,17 +325,44 @@ export default function Events({ events, people, places, memories, addEvent, upd
                         <div key={s.place_id} style={{ padding: '10px 12px', fontSize: 13, cursor: 'pointer', borderRadius: 8, borderBottom: '1px solid #F3F4F6' }}
                           onMouseEnter={e => e.target.style.background = '#F3F4F6'}
                           onMouseLeave={e => e.target.style.background = 'transparent'}
-                          onClick={() => { setForm(prev => ({ ...prev, locationName: s.display_name })); setPlaceSuggestions([]); }}>
+                          onClick={() => {
+                            setForm(prev => ({ ...prev, locationName: s.display_name }));
+                            setPlaceSuggestions([]);
+                          }}>
                           {s.display_name}
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
+                {/* Google Maps Link — directly below location */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', whiteSpace: 'nowrap' }}>🔗 Google Maps:</span>
+                  <input className="input-pill" style={{ flex: 1, fontSize: 12 }} placeholder="https://maps.google.com/..." value={form.mapLink}
+                    onChange={e => setForm(p => ({ ...p, mapLink: e.target.value }))} />
+                </div>
               </div>
 
-              <textarea className="input-pill" placeholder={t('events.notes', lang)} value={form.notes}
-                onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} style={{ minHeight: 60 }} />
+              {/* ─── Cost ─── */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                  💰 Chi phí
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input className="input-pill" type="number" style={{ flex: 1 }} placeholder="0" value={form.cost}
+                    onChange={e => setForm(p => ({ ...p, cost: parseInt(e.target.value) || 0 }))} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#9CA3AF' }}>VNĐ</span>
+                </div>
+              </div>
+
+              {/* ─── Notes ─── */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                  📝 {t('events.notes', lang)}
+                </div>
+                <textarea className="input-pill" placeholder={lang === 'vi' ? 'Nhập ghi chú...' : 'Enter notes...'} value={form.notes}
+                  onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} style={{ minHeight: 70, resize: 'vertical' }} />
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
