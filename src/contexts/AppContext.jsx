@@ -78,7 +78,7 @@ function calcLifeScore(people, events, memories, places) {
 
 function generateSuggestions(people, events, memories, lang, places) {
   const suggestions = [];
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
   const todayDate = new Date();
 
   for (const p of people) {
@@ -305,7 +305,7 @@ export function AppProvider({ children }) {
   const suggestions = generateSuggestions(people, events, memories, lang, places);
 
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
     setScoreHistory(prev => {
       const last = prev[prev.length - 1];
       if (last && last.date === today && last.score === lifeScore.lifeScore) return prev;

@@ -143,7 +143,7 @@ export default function PersonDetail({ person, events, memories, onBack, onDelet
   const [interactionType, setInteractionType] = useState('meet');
 
   const s = getScoreInfo(person.relationshipScore || 0);
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
   const lastContact = person.lastInteractionDate ? daysBetween(person.lastInteractionDate, today) : null;
 
   const interactionTypes = [

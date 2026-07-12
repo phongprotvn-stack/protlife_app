@@ -88,7 +88,8 @@ export default function Timeline({ onClose }) {
     });
   }, [allItems, filterType, filterPerson]);
 
-  const today = new Date().toISOString().split('T')[0];
+  // Vietnam timezone (UTC+7) for correct "Hôm nay" label
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
   const grouped = useMemo(() => {
     const groups = [];
     let currentGroup = null;
