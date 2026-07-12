@@ -288,7 +288,7 @@ export default function DataHubModal({ mode, onClose }) {
             </div>
           )}
 
-          {!loading && mode === 'report' && (
+          {!loading && (mode === 'report' || (mode === 'export' && step >= 1)) && (
             <div>
               {step === 0 && (
                 <div>
@@ -358,8 +358,10 @@ export default function DataHubModal({ mode, onClose }) {
                   {/* Action buttons */}
                   <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                     <button className="btn-secondary" style={{ flex: 1 }}
-                      onClick={() => setStep(0)}>
-                      ← {vi ? 'Chọn lại' : 'Back'}
+                      onClick={() => {
+                        if (mode === 'export') { setStep(0); } else { setStep(0); }
+                      }}>
+                      ← {vi ? 'Quay lại' : 'Back'}
                     </button>
                     <button onClick={handleGenerateReport} style={{
                       flex: 2, padding: 12, borderRadius: 12,

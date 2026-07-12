@@ -144,7 +144,8 @@ export default function App() {
       case 'dashboard':
         return <Dashboard people={people} events={events} memories={memories} places={places}
           onShowPlaces={openPlaces}
-          onShowTimeline={openTimeline} />;
+          onShowTimeline={openTimeline}
+          onSelectPerson={showPerson} />;
       case 'people':
         return <People people={people} tags={tags} groups={groups} onSelectPerson={showPerson} addPerson={addPerson} updatePerson={updatePerson} addGroup={addGroup} updateGroup={updateGroup} deleteGroup={deleteGroup} />;
       case 'events':
@@ -156,7 +157,8 @@ export default function App() {
       default:
         return <Dashboard people={people} events={events} memories={memories} places={places}
           onShowPlaces={openPlaces}
-          onShowTimeline={openTimeline} />;
+          onShowTimeline={openTimeline}
+          onSelectPerson={showPerson} />;
     }
   };
 

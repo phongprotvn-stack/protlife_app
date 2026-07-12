@@ -4,7 +4,7 @@ import { t } from '../i18n';
 import { getScoreInfo } from '../contexts/AppContext';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 
-export default function Dashboard({ people, events, memories, places, onShowPlaces, onShowTimeline }) {
+export default function Dashboard({ people, events, memories, places, onShowPlaces, onShowTimeline, onSelectPerson }) {
   const { lifeScore, stats, suggestions, lang } = useApp();
   const scoreInfo = getScoreInfo(lifeScore.lifeScore);
 
@@ -127,12 +127,54 @@ export default function Dashboard({ people, events, memories, places, onShowPlac
         </div>
       )}
 
+      {/* Distant Relationships — mối quan hệ mờ nhạt */}
+      {(() => {
+        const distant = [...people]
+          .filter(p => (p.relationshipScore || 0) < 30)
+          .sort((a, b) => (a.relationshipScore || 0) - (b.relationshipScore || 0))
+          .slice(0, 5);
+        if (distant.length === 0) return null;
+        return (
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="title" style={{ marginBottom: 12 }}>
+              😶 {lang === 'vi' ? 'Mối quan hệ mờ nhạt' : 'Distant Relationships'}
+            </div>
+            {distant.map((p, i) => (
+              <div key={p.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '8px 0', borderBottom: i < distant.length - 1 ? '1px solid #F3F4F6' : 'none',
+                cursor: 'pointer', borderRadius: 8,
+              }}
+                onClick={() => onSelectPerson && onSelectPerson(p.id)}
+                onMouseEnter={e => e.currentTarget.style.background = '#F9FAFB'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 12,
+                  background: 'rgba(156,163,175,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16, flexShrink: 0,
+                }}>
+                  {p.name?.charAt(0)?.toUpperCase() || '?'}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF' }}>
+                    {lang === 'vi' ? `Điểm: ${p.relationshipScore || 0} — cần quan tâm hơn` : `Score: ${p.relationshipScore || 0} — needs attention`}
+                  </div>
+                </div>
+                <span style={{ fontSize: 12, color: '#9CA3AF' }}>→</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Suggestions */}
       {suggestions.length > 0 && (
         <div style={{ marginBottom: 20 }}>
           <div className="title" style={{ marginBottom: 12 }}>💡 {t('dashboard.suggestions', lang)}</div>
           {suggestions.map(s => (
-            <div key={s.id} className="card" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
+            <div key={s.id} className="card" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: s.personId ? 'pointer' : 'default' }}
+              onClick={() => { if (s.personId && onSelectPerson) onSelectPerson(s.personId); }}>
               <div style={{ fontSize: 22 }}>{s.icon}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{s.titleVI || s.titleEN}</div>

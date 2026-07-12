@@ -3,7 +3,7 @@ import { useApp } from '../contexts/AppContext';
 import { Plus, Search, X, CalendarHeart, MapPin, Trash2, Edit3 } from 'lucide-react';
 import { t, formatDate } from '../i18n';
 
-const EVENT_TYPES = ['meeting', 'birthday', 'travel', 'work', 'sport', 'hospital', 'meal', 'call', 'shopping', 'study', 'party', 'date', 'appointment', 'other'];
+const EVENT_TYPES = ['meeting', 'birthday', 'travel', 'work', 'sport', 'hospital', 'meal', 'call', 'shopping', 'study', 'party', 'dating', 'appointment', 'other'];
 
 const MOOD_OPTIONS = ['', 'Happy', 'Normal', 'Sad', 'Excited', 'Tired', 'Angry', 'Thoughtful', 'Loved'];
 const IMPORTANCE_OPTIONS = ['', '1 - Lowest', '2 - Low', '3 - Medium', '4 - High', '5 - Highest'];
@@ -41,24 +41,36 @@ export default function Events({ events, people, places, memories, addEvent, upd
     searchTimeout.current = setTimeout(async () => {
       try {
         const countryFilter = searchVietnam ? '&countrycodes=vn' : '';
-        // Also set Vietnamese language for better results
+        // Try Nominatim first
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=vi${countryFilter}&q=${encodeURIComponent(text)}`
+          `https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=vi${countryFilter}&q=${encodeURIComponent(text)}`
         );
-        const data = await res.json();
-        // If Vietnam results are few, also do a global search and merge
-        if (searchVietnam && data.length < 3) {
-          const res2 = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&limit=4&accept-language=vi&q=${encodeURIComponent(text)}`
-          );
-          const data2 = await res2.json();
-          // Merge, dedup by place_id
-          const seen = new Set(data.map(d => d.place_id));
-          const merged = [...data, ...data2.filter(d => !seen.has(d.place_id))];
-          setPlaceSuggestions(merged);
-        } else {
-          setPlaceSuggestions(data);
+        let data = await res.json();
+
+        // If few/no results from Nominatim, try Photon (komoot) as fallback
+        if (data.length < 2) {
+          try {
+            const photonLang = searchVietnam ? '&lang=vi' : '';
+            const photonQ = `https://photon.komoot.io/api/?limit=5${photonLang}&q=${encodeURIComponent(text)}`;
+            const pRes = await fetch(photonQ);
+            const pData = await pRes.json();
+            if (pData.features?.length) {
+              const photonResults = pData.features.map(f => ({
+                place_id: `photon_${f.properties.osm_id || f.properties.osm_key || Math.random()}`,
+                display_name: f.properties.name + (f.properties.city ? `, ${f.properties.city}` : '') + (f.properties.country ? `, ${f.properties.country}` : ''),
+                lat: f.geometry.coordinates[1],
+                lon: f.geometry.coordinates[0],
+                type: f.properties.osm_value || f.properties.osm_key || 'place',
+              }));
+              // Merge with any Nominatim results (dedup)
+              const seen = new Set(data.map(d => d.place_id));
+              const merged = [...data, ...photonResults.filter(d => !seen.has(d.place_id))];
+              data = merged;
+            }
+          } catch (phErr) {}
         }
+
+        setPlaceSuggestions(data);
       } catch (e) {}
     }, 500);
   };
@@ -101,6 +113,8 @@ export default function Events({ events, people, places, memories, addEvent, upd
   const openAdd = () => {
     setEditingEvent(null);
     setForm(getEmptyForm());
+    setSelectedPlace(null);
+    setPlaceSuggestions([]);
     setShowModal(true);
   };
 
@@ -151,7 +165,7 @@ export default function Events({ events, people, places, memories, addEvent, upd
     const map = { 
       meeting: '🤝', birthday: '🎂', travel: '✈️', work: '💼',
       sport: '🏆', hospital: '🏥', meal: '🍽️', call: '📞',
-      shopping: '🛍️', study: '📚', party: '🎉', date: '💑',
+      shopping: '🛍️', study: '📚', party: '🎉', dating: '💑',
       appointment: '📅',
     };
     return map[tp] || '📌';

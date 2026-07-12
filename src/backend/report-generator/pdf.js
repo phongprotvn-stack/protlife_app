@@ -56,26 +56,55 @@ export async function generatePdf(data, options = {}) {
   if (data.events?.length) {
     y = checkPage(doc, page, y, 200);
     drawText(page, `Events (${data.events.length})`, fontBold, 16, margin, y); y -= 22;
-    y = drawTable(doc, page, ['Title', 'Date', 'Location', 'Type'], data.events.map(e => [
-      e.title || '', e.date || '', e.location || '', e.type || '',
-    ]), font, fontBold, margin, y);
+    y = drawTable(doc, page, ['Title', 'Date', 'End Date', 'Location', 'Type', 'Mood', 'Cost', 'Notes'],
+      data.events.map(e => [
+        e.title || '',
+        e.date || '',
+        e.endDate || '',
+        e.locationName || e.location || '',
+        e.eventType || '',
+        e.mood || '',
+        e.cost ? `${e.cost.toLocaleString()}đ` : '',
+        e.notes ? e.notes.substring(0, 50) : '',
+      ]), font, fontBold, margin, y, [140, 80, 80, 120, 70, 60, 60, 0]);
   }
 
   // ── Memories ──
   if (data.memories?.length) {
-    y = checkPage(doc, page, y, data.memories.length * 20 + 40);
+    y = checkPage(doc, page, y, data.memories.length * 24 + 40);
     drawText(page, `Memories (${data.memories.length})`, fontBold, 16, margin, y); y -= 22;
-    for (const m of data.memories.slice(0, 30)) {
+    for (const m of data.memories.slice(0, 40)) {
       drawText(page, `• ${m.title || 'Untitled'}`, font, 11, margin + 10, y); y -= 14;
+      if (m.date) { drawText(page, `  📅 ${m.date}`, font, 9, margin + 10, y, rgb(0.4, 0.4, 0.4)); y -= 13; }
+      if (m.mood) { drawText(page, `  🎭 ${m.mood}`, font, 9, margin + 10, y, rgb(0.4, 0.4, 0.4)); y -= 13; }
+      if (m.eventId) {
+        const linkedEvent = data.events?.find(ev => ev.id === m.eventId);
+        if (linkedEvent) { drawText(page, `  📌 ${linkedEvent.title}`, font, 9, margin + 10, y, rgb(0.29, 0.24, 0.9)); y -= 13; }
+      }
       if (m.content) {
-        drawText(page, `  ${m.content.substring(0, 120)}`, font, 9, margin + 10, y, rgb(0.4, 0.4, 0.4));
+        drawText(page, `  ${m.content.substring(0, 150)}`, font, 9, margin + 10, y, rgb(0.4, 0.4, 0.4));
         y -= 14;
       }
     }
-    if (data.memories.length > 30) {
-      drawText(page, `... and ${data.memories.length - 30} more`, font, 10, margin + 10, y, rgb(0.6, 0.6, 0.6));
+    if (data.memories.length > 40) {
+      drawText(page, `... and ${data.memories.length - 40} more`, font, 10, margin + 10, y, rgb(0.6, 0.6, 0.6));
       y -= 16;
     }
+  }
+
+  // ── People (Relationships) ──
+  if (data.people?.length) {
+    y = checkPage(doc, page, y, 250);
+    drawText(page, `People — Relationships (${data.people.length})`, fontBold, 16, margin, y); y -= 22;
+    y = drawTable(doc, page, ['Name', 'Relationship', 'Phone', 'Score', 'Status', 'Source'],
+      data.people.map(p => [
+        p.name || '',
+        p.relationship || '',
+        Array.isArray(p.phones) ? p.phones.join(', ') : p.phones || '',
+        String(p.relationshipScore ?? ''),
+        p.status || '',
+        p.source || '',
+      ]), font, fontBold, margin, y, [120, 90, 100, 40, 60, 60]);
   }
 
   // ── Places ──
@@ -107,8 +136,18 @@ function checkPage(doc, page, y, needed) {
   return y;
 }
 
-function drawTable(doc, page, headers, rows, font, fontBold, startX, startY) {
-  const colWidths = [140, 100, 120, 60];
+function drawTable(doc, page, headers, rows, font, fontBold, startX, startY, colWidths) {
+  if (!colWidths) colWidths = [140, 100, 120, 60];
+  // If column widths don't match headers, compute evenly
+  if (colWidths.length !== headers.length) {
+    const avail = 520 - startX;
+    colWidths = headers.map((_, i) => i === headers.length - 1 ? 0 : Math.floor(avail / (headers.length - 1)));
+  }
+  // Last column width = 0 means "auto fill remaining"
+  if (colWidths[colWidths.length - 1] === 0) {
+    const used = colWidths.slice(0, -1).reduce((a, b) => a + b, 0);
+    colWidths[colWidths.length - 1] = Math.max(80, 520 - startX - used);
+  }
   const rowHeight = 18;
   let y = startY;
 
