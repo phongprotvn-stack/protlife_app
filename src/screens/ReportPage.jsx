@@ -61,6 +61,19 @@ const buildContactIdMap = (peopleList) => {
   return map;
 };
 
+// Org 2 mapping — matches bảng dữ liệu Excel gốc
+const ORG2_BY_NAME = {
+  'NHA Phúc': 'Sư đoàn Mõm',
+  'NHA Tân': 'Sư đoàn Mõm',
+  'SBV Thành Mega': 'Sư đoàn Mõm',
+  'PCRT E. Kỳ': '3 Musketeers',
+  'PCRT A. Ngọc': '3 Musketeers',
+};
+const getOrg2 = (person) => {
+  if (person.organization2) return person.organization2;
+  return ORG2_BY_NAME[person.name] || '';
+};
+
 export default function ReportPage({ people, events, memories, places, lang, onClose }) {
   const [reportType, setReportType] = useState('events');
   const [dateFrom, setDateFrom] = useState('');
@@ -181,7 +194,7 @@ export default function ReportPage({ people, events, memories, places, lang, onC
         html += `<tr>
           <td>${i + 1}</td><td>${cId}</td><td><b>${esc(p.name)}</b></td>
           <td>${esc(p.gender)}</td><td>${esc(p.dob)}</td><td>${esc(p.relationship)}</td>
-          <td>${esc(p.organization)}</td><td></td>
+          <td>${esc(p.organization)}</td><td>${esc(getOrg2(p))}</td>
           <td>${esc(Array.isArray(p.phones) ? p.phones.join(', ') : p.phones)}</td>
           <td>${esc(Array.isArray(p.emails) ? p.emails.join(', ') : p.emails)}</td>
           <td>${esc(p.address)}</td><td>${esc(p.notes)}</td>
@@ -249,7 +262,7 @@ export default function ReportPage({ people, events, memories, places, lang, onC
         'Status', 'Is Favorite', 'Relationship Score', 'Source'];
       const rows = people.map((p, i) => [
         i + 1, contactIdMap.get(p.id) || p.id || '', p.name || '', p.gender || '', p.dob || '', p.relationship || '',
-        p.organization || '', '',
+        p.organization || '', getOrg2(p),
         Array.isArray(p.phones) ? p.phones.join(', ') : p.phones || '',
         Array.isArray(p.emails) ? p.emails.join(', ') : p.emails || '',
         p.address || '', p.notes || '', p.status || '',
@@ -628,7 +641,7 @@ export default function ReportPage({ people, events, memories, places, lang, onC
                       <td style={tdStyle}>{p.dob || ''}</td>
                       <td style={tdStyle}>{p.relationship || ''}</td>
                       <td style={tdStyle}>{p.organization || ''}</td>
-                      <td style={tdStyle}>{''}</td>
+                      <td style={tdStyle}>{getOrg2(p)}</td>
                       <td style={tdStyle}>{Array.isArray(p.phones) ? p.phones.join(', ') : p.phones || ''}</td>
                       <td style={tdStyle}>{Array.isArray(p.emails) ? p.emails.join(', ') : p.emails || ''}</td>
                       <td style={tdStyle}>{p.address || ''}</td>
