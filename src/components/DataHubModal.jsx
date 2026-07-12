@@ -15,12 +15,9 @@ const ICONS = {
 };
 
 const FORMAT_DISPLAY = {
-  pdf:           { name: 'PDF Document',        icon: '📄', mime: '.pdf', color: '#DC2626' },
-  excel:         { name: 'Excel Spreadsheet',    icon: '📊', mime: '.xlsx', color: '#059669' },
-  word:          { name: 'Word Document',        icon: '📝', mime: '.docx', color: '#2563EB' },
-  'google-sheets': { name: 'Google Sheets',      icon: '📗', mime: '', color: '#0F9D58' },
-  'google-docs':   { name: 'Google Docs',        icon: '📘', mime: '', color: '#4285F4' },
-  json:          { name: 'JSON Data',            icon: '🔤', mime: '.json', color: '#6B7280' },
+  json: { name: 'JSON',        icon: '🔤', mime: '.json', color: '#6B7280' },
+  csv:  { name: 'CSV',         icon: '📋', mime: '.csv',  color: '#059669' },
+  print:{ name: 'In / PDF',    icon: '🖨️', mime: '',      color: '#7C3AED' },
 };
 
 // Smart report templates
@@ -64,40 +61,14 @@ const REPORT_TEMPLATES = [
 ];
 
 export default function DataHubModal({ mode, onClose }) {
-  const [step, setStep] = useState(0);
-  const [collections, setCollections] = useState({
-    people: true, events: true, memories: true, places: true
-  });
-  const [format, setFormat] = useState('pdf');
-  const [title, setTitle] = useState('ProtLife Report');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [formatList, setFormatList] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const { lang, showToast } = useApp();
+  const { lang, showToast, people, events, memories, places } = useApp();
   const vi = lang === 'vi';
 
-  useEffect(() => {
-    if (['report', 'export'].includes(mode)) {
-      apiDataHub.listFormats()
-        .then(r => setFormatList(r.formats || []))
-        .catch(() => {});
-    }
-  }, [mode]);
-
-  const toggleColl = (key) =>
-    setCollections(p => ({ ...p, [key]: !p[key] }));
-
-  const applyTemplate = (tmpl) => {
-    const colls = {};
-    for (const c of ['people', 'events', 'memories', 'places']) {
-      colls[c] = tmpl.collections.includes(c);
-    }
-    setCollections(colls);
-    setTitle(vi ? tmpl.titleVI : tmpl.titleEN);
-    setStep(1);
-  };
+  const [preview, setPreview] = useState(null); // { title, html }
+  const [previewType, setPreviewType] = useState(null); // template id
+  const [showFormatPicker, setShowFormatPicker] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
 
   const handleExportJson = async () => {
     setLoading(true);
@@ -111,10 +82,8 @@ export default function DataHubModal({ mode, onClose }) {
       a.click();
       URL.revokeObjectURL(url);
       showToast('✅ ' + (vi ? 'Xuất JSON thành công' : 'JSON exported'));
-      setResult({ type: 'success', message: vi ? 'File đã tải xuống!' : 'File downloaded!' });
     } catch (e) {
       showToast('❌ ' + (vi ? 'Xuất thất bại' : 'Export failed') + ': ' + e.message);
-      setResult({ type: 'error', message: e.message });
     }
     setLoading(false);
   };
@@ -135,14 +104,11 @@ export default function DataHubModal({ mode, onClose }) {
           if (items.length > 0) {
             const r = await apiDataHub.importJson(items);
             showToast(`✅ ${vi ? 'Đã import' : 'Imported'}: ${r.created || items.length} records`);
-            setResult({ type: 'success', message: `${vi ? 'Đã tạo' : 'Created'}: ${r.created}, ${vi ? 'Cập nhật' : 'Updated'}: ${r.updated || 0}` });
           } else {
             showToast('⚠️ ' + (vi ? 'Không có dữ liệu' : 'No records found'));
-            setResult({ type: 'error', message: vi ? 'Dữ liệu rỗng' : 'Empty data' });
           }
         } catch (e) {
           showToast('❌ ' + (vi ? 'Import thất bại' : 'Import failed') + ': ' + e.message);
-          setResult({ type: 'error', message: e.message });
         }
         setLoading(false);
       };
@@ -157,11 +123,9 @@ export default function DataHubModal({ mode, onClose }) {
     setLoading(true);
     try {
       const r = await apiDataHub.importSheets(url);
-      showToast(`✅ ${vi ? 'Đã import' : 'Imported'}: ${r.created} ${vi ? 'tạo mới' : 'created'}, ${r.updated} ${vi ? 'cập nhật' : 'updated'}`);
-      setResult({ type: 'success', message: `${vi ? 'Đã tạo' : 'Created'}: ${r.created}, ${vi ? 'Cập nhật' : 'Updated'}: ${r.updated}` });
+      showToast(`✅ ${vi ? 'Đã import' : 'Imported'}: ${r.created} new, ${r.updated} updated`);
     } catch (e) {
       showToast('❌ ' + (vi ? 'Import thất bại' : 'Import failed') + ': ' + e.message);
-      setResult({ type: 'error', message: e.message });
     }
     setLoading(false);
   };
@@ -182,83 +146,280 @@ export default function DataHubModal({ mode, onClose }) {
             const parsed = await apiDataHub.parseFile(base64, file.name, file.type);
             if (!parsed.rows || parsed.rows.length === 0) {
               showToast('⚠️ ' + (vi ? 'Không có dữ liệu' : 'No data found'));
-              setResult({ type: 'error', message: vi ? 'Không có dữ liệu' : 'No data found' });
             } else {
               const confirmed = confirm(
-                `${vi ? 'Tìm thấy' : 'Found'} ${parsed.total} rows\n${vi ? 'Phát hiện' : 'Detected'}: ${(parsed.collections || ['data']).join(', ')}\n\n${vi ? 'Import ngay?' : 'Import now?'}`
+                `${vi ? 'Tìm thấy' : 'Found'} ${parsed.total} rows\n${vi ? 'Import ngay?' : 'Import now?'}`
               );
               if (confirmed) {
                 const r = await apiDataHub.importJson(parsed.rows);
-                showToast(`✅ ${vi ? 'Đã import' : 'Imported'}: ${r.created} ${vi ? 'tạo mới' : 'created'}, ${r.updated} ${vi ? 'cập nhật' : 'updated'}`);
-                setResult({ type: 'success', message: `${vi ? 'Đã tạo' : 'Created'}: ${r.created}, ${vi ? 'Cập nhật' : 'Updated'}: ${r.updated}` });
-              } else {
-                setResult({ type: 'info', message: `${vi ? 'Đã huỷ' : 'Cancelled'} — ${parsed.total} rows parsed` });
+                showToast(`✅ ${vi ? 'Đã import' : 'Imported'}: ${r.created} created, ${r.updated} updated`);
               }
             }
           } catch (err) {
             showToast('❌ ' + (vi ? 'Phân tích thất bại' : 'Parse failed') + ': ' + err.message);
-            setResult({ type: 'error', message: err.message });
           }
           setLoading(false);
         };
         reader.readAsDataURL(file);
       } catch (e) {
         showToast('❌ ' + (vi ? 'Đọc file thất bại' : 'Failed to read file'));
-        setResult({ type: 'error', message: e.message });
         setLoading(false);
       }
     };
     input.click();
   };
 
-  const handleGenerateReport = async () => {
-    const selected = Object.entries(collections)
-      .filter(([, v]) => v)
-      .map(([k]) => k);
-    if (selected.length === 0) {
-      showToast('⚠️ ' + (vi ? 'Chọn ít nhất 1 loại dữ liệu' : 'Select at least one collection'));
-      return;
-    }
+  // ── Generate HTML report preview from context data ──
+  const generatePreview = (tmpl) => {
     setLoading(true);
-    try {
-      const dateRange = dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : dateFrom || dateTo;
-      const data = await apiDataHub.exportReport(format, {
-        collections: selected,
-        title: title || 'ProtLife Report',
-        dateRange,
-        includeStats: true,
-      });
-      const blob = new Blob([data], { type: data.type || 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const ext = FORMAT_DISPLAY[format]?.mime || '.bin';
-      a.download = `${title.replace(/[^a-zA-Z0-9_À-ÿ]/g, '_')}_${new Date().toISOString().split('T')[0]}${ext}`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('✅ ' + (vi ? 'Đã tạo báo cáo!' : 'Report generated!'));
-    } catch (e) {
-      showToast('❌ ' + (vi ? 'Tạo báo cáo thất bại' : 'Report failed') + ': ' + e.message);
-      setResult({ type: 'error', message: e.message });
+    setResult(null);
+
+    // Filter data by collection
+    const showEvents = tmpl.collections.includes('events');
+    const showMemories = tmpl.collections.includes('memories');
+    const showPeople = tmpl.collections.includes('people');
+    const showPlaces = tmpl.collections.includes('places');
+
+    const title = vi ? tmpl.titleVI : tmpl.titleEN;
+    const now = new Date().toLocaleDateString(vi ? 'vi-VN' : 'en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+
+    const eventEmoji = (tp) => {
+      const map = { meeting: '🤝', birthday: '🎂', travel: '✈️', work: '💼',
+        sport: '🏆', hospital: '🏥', meal: '🍽️', call: '📞',
+        shopping: '🛍️', study: '📚', party: '🎉', dating: '💑', appointment: '📅' };
+      return map[tp] || '📌';
+    };
+
+    const moodEmoji = (m) => {
+      const map = { Happy: '😊', Normal: '😐', Sad: '😢', Excited: '🤩', Tired: '😴', Angry: '😠', Thoughtful: '🤔', Loved: '😍' };
+      return map[m] || '';
+    };
+
+    // Build HTML
+    let html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+             color: #1F2937; background: #fff; padding: 32px; max-width: 900px; margin: 0 auto; }
+      h1 { font-size: 24px; font-weight: 800; margin-bottom: 4px; color: #111827; }
+      .meta { font-size: 13px; color: #9CA3AF; margin-bottom: 24px; }
+      .stat-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+      .stat { background: #F9FAFB; border-radius: 12px; padding: 12px 20px; flex: 1; min-width: 100px; text-align: center; }
+      .stat-num { font-size: 28px; font-weight: 800; color: #E6002D; }
+      .stat-label { font-size: 11px; color: #9CA3AF; font-weight: 600; margin-top: 2px; }
+      h2 { font-size: 18px; font-weight: 700; margin: 28px 0 12px; color: #111827;
+           border-bottom: 2px solid #F3F4F6; padding-bottom: 8px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+      th { background: #F3F4F6; font-weight: 700; text-align: left; padding: 10px 12px;
+           color: #374151; font-size: 12px; border-bottom: 2px solid #E5E7EB; }
+      td { padding: 9px 12px; border-bottom: 1px solid #F3F4F6; vertical-align: top; }
+      tr:hover td { background: #F9FAFB; }
+      .chip { display: inline-block; padding: 2px 8px; border-radius: 10px;
+              font-size: 11px; font-weight: 600; background: #F3F4F6; color: #374151; }
+      .score { font-weight: 700; color: #E6002D; }
+      .footer { margin-top: 32px; text-align: center; font-size: 11px; color: #D1D5DB; }
+      .memo-item { padding: 12px 16px; border: 1px solid #F3F4F6; border-radius: 10px;
+                   margin-bottom: 8px; }
+      .memo-item h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+      .memo-item .sub { font-size: 12px; color: #6B7280; }
+      .memo-item .mood { font-size: 14px; }
+      .cost { font-weight: 600; color: #059669; }
+    </style>
+    <title>${title}</title></head><body>
+    <h1>${tmpl.icon} ${title}</h1>
+    <div class="meta">📅 ${now} · ${vi ? 'ProtLife OS' : 'ProtLife OS'}</div>`;
+
+    // Statistics
+    if (showPeople || showEvents || showMemories || showPlaces) {
+      html += `<div class="stat-bar">`;
+      if (showPeople)   html += `<div class="stat"><div class="stat-num">${people.length}</div><div class="stat-label">${vi ? 'Người' : 'People'}</div></div>`;
+      if (showEvents)   html += `<div class="stat"><div class="stat-num">${events.length}</div><div class="stat-label">${vi ? 'Sự kiện' : 'Events'}</div></div>`;
+      if (showMemories) html += `<div class="stat"><div class="stat-num">${memories.length}</div><div class="stat-label">${vi ? 'Ký ức' : 'Memories'}</div></div>`;
+      if (showPlaces)   html += `<div class="stat"><div class="stat-num">${places.length}</div><div class="stat-label">${vi ? 'Địa điểm' : 'Places'}</div></div>`;
+      html += `</div>`;
     }
+
+    // Events table
+    if (showEvents && events.length > 0) {
+      html += `<h2>📅 ${vi ? 'Danh sách Sự kiện' : 'Events'} (${events.length})</h2>
+      <table><thead><tr>
+        <th>${vi ? 'Tên' : 'Title'}</th>
+        <th>${vi ? 'Ngày' : 'Date'}</th>
+        <th>${vi ? 'Thể loại' : 'Type'}</th>
+        <th>${vi ? 'Địa điểm' : 'Location'}</th>
+        <th>${vi ? 'Chi phí' : 'Cost'}</th>
+      </tr></thead><tbody>`;
+      for (const e of events) {
+        html += `<tr>
+          <td><strong>${e.title || ''}</strong></td>
+          <td>${e.date || ''}${e.endDate ? ` → ${e.endDate}` : ''}</td>
+          <td>${eventEmoji(e.eventType)} <span class="chip">${e.eventType || ''}</span></td>
+          <td>${e.locationName || e.location || ''}</td>
+          <td class="cost">${e.cost ? `${Number(e.cost).toLocaleString()}đ` : ''}</td>
+        </tr>`;
+      }
+      html += `</tbody></table>`;
+    }
+
+    // Memories list
+    if (showMemories && memories.length > 0) {
+      html += `<h2>💭 ${vi ? 'Danh sách Ký ức' : 'Memories'} (${memories.length})</h2>`;
+      for (const m of memories) {
+        const linkedEv = events.find(ev => ev.id === m.eventId);
+        html += `<div class="memo-item">
+          <h3>${moodEmoji(m.mood)} ${m.title || 'Untitled'}</h3>
+          <div class="sub">📅 ${m.date || ''}${m.mood ? ` · <span class="mood">🎭 ${m.mood}</span>` : ''}</div>
+          ${m.content ? `<div style="margin-top:6px;color:#4B5563;font-size:12px">${m.content.substring(0, 300)}</div>` : ''}
+          ${linkedEv ? `<div style="margin-top:4px;font-size:12px;color:#7C3AED">📌 ${linkedEv.title}</div>` : ''}
+        </div>`;
+      }
+    }
+
+    // People table
+    if (showPeople && people.length > 0) {
+      html += `<h2>👥 ${vi ? 'Danh sách Quan hệ' : 'Relationships'} (${people.length})</h2>
+      <table><thead><tr>
+        <th>${vi ? 'Tên' : 'Name'}</th>
+        <th>${vi ? 'Quan hệ' : 'Relationship'}</th>
+        <th>${vi ? 'Điểm' : 'Score'}</th>
+        <th>${vi ? 'Trạng thái' : 'Status'}</th>
+        <th>${vi ? 'Nguồn' : 'Source'}</th>
+      </tr></thead><tbody>`;
+      for (const p of people) {
+        html += `<tr>
+          <td><strong>${p.name || ''}</strong></td>
+          <td>${p.relationship || ''}</td>
+          <td class="score">${p.relationshipScore || 0}</td>
+          <td>${p.status || ''}</td>
+          <td>${p.source || ''}</td>
+        </tr>`;
+      }
+      html += `</tbody></table>`;
+    }
+
+    // Places
+    if (showPlaces && places.length > 0) {
+      html += `<h2>📍 ${vi ? 'Danh sách Địa điểm' : 'Places'} (${places.length})</h2>`;
+      for (const p of places) {
+        html += `<div class="memo-item">
+          <h3>📍 ${p.name || 'Unnamed'}</h3>
+          <div class="sub">${p.address || ''}</div>
+        </div>`;
+      }
+    }
+
+    html += `<div class="footer">${vi ? 'Được tạo bởi' : 'Generated by'} ProtLife OS v2.0.0</div></body></html>`;
+
+    setPreview({ title, html });
+    setPreviewType(tmpl.id);
     setLoading(false);
   };
+
+  // ── Download handlers ──
+  const downloadAsJson = () => {
+    const exportData = {};
+    if (previewType === 'events' || previewType === 'full' || previewType === 'relationships') {
+      exportData.events = events.map(e => ({ ...e }));
+    }
+    if (previewType === 'memories' || previewType === 'full' || previewType === 'relationships') {
+      exportData.memories = memories.map(m => ({ ...m }));
+    }
+    if (previewType === 'relationships' || previewType === 'full') {
+      exportData.people = people.map(p => ({ ...p }));
+    }
+    if (previewType === 'full') {
+      exportData.places = places.map(p => ({ ...p }));
+    }
+    exportData.exportedAt = new Date().toISOString();
+    exportData.version = '2.0.0';
+    const blob = new Blob(['\ufeff' + JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${previewType}_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadAsCsv = () => {
+    let csv = '\ufeff';
+
+    const toCsvRow = (row) => row.map(v => {
+      const s = String(v ?? '');
+      return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(',');
+
+    if (previewType === 'events' || previewType === 'full' || previewType === 'relationships') {
+      csv += toCsvRow(['Title', 'Date', 'End Date', 'Type', 'Location', 'Mood', 'Cost', 'Notes']) + '\n';
+      for (const e of events) {
+        csv += toCsvRow([e.title, e.date, e.endDate, e.eventType, e.locationName || e.location, e.mood, e.cost, e.notes]) + '\n';
+      }
+    }
+    if (previewType === 'memories' || previewType === 'full' || previewType === 'relationships') {
+      csv += '\n' + toCsvRow(['Memory Title', 'Date', 'Mood', 'Content', 'EventID']) + '\n';
+      for (const m of memories) {
+        csv += toCsvRow([m.title, m.date, m.mood, m.content?.substring(0, 200), m.eventId]) + '\n';
+      }
+    }
+    if (previewType === 'relationships' || previewType === 'full') {
+      csv += '\n' + toCsvRow(['Name', 'Relationship', 'Score', 'Status', 'Source', 'Phone']) + '\n';
+      for (const p of people) {
+        csv += toCsvRow([p.name, p.relationship, p.relationshipScore, p.status, p.source,
+          Array.isArray(p.phones) ? p.phones.join('; ') : p.phones]) + '\n';
+      }
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${previewType}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const printReport = () => {
+    const w = window.open('', '_blank', 'width=900,height=700');
+    w.document.write(preview.html);
+    w.document.close();
+    setTimeout(() => { w.focus(); w.print(); }, 300);
+  };
+
+  const doDownload = (fmt) => {
+    setShowFormatPicker(false);
+    if (fmt === 'json') downloadAsJson();
+    else if (fmt === 'csv') downloadAsCsv();
+    else if (fmt === 'print') printReport();
+    showToast('✅ ' + (vi ? 'Đã tải xuống!' : 'Downloaded!'));
+  };
+
+  // ── Header title ──
+  const headerTitle = preview
+    ? preview.title
+    : mode === 'import' ? (vi ? 'Import Dữ liệu' : 'Import Data')
+      : mode === 'export' ? (vi ? 'Xuất Dữ liệu' : 'Export Data')
+        : 'Data Hub';
 
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{ ...styles.header, background: COVER_COLORS[mode] || COVER_COLORS.export }}>
-          <span style={{ fontSize: 20 }}>{ICONS[mode] || '📦'}</span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginLeft: 10 }}>
-            {mode === 'import' ? (vi ? 'Import Dữ liệu' : 'Import Data')
-              : mode === 'export' ? (vi ? 'Xuất Dữ liệu' : 'Export Data')
-              : mode === 'report' ? (vi ? 'Tạo Báo cáo' : 'Generate Report')
-              : 'Data Hub'}
+          <span style={{ fontSize: 20 }}>{preview ? '📊' : (ICONS[mode] || '📦')}</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginLeft: 10, flex: 1 }}>
+            {headerTitle}
           </span>
+          {preview && (
+            <span onClick={() => { setPreview(null); setPreviewType(null); }}
+              style={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              ✕ {vi ? 'Đóng' : 'Close'}
+            </span>
+          )}
         </div>
 
-        <div style={{ padding: 20, maxHeight: 420, overflowY: 'auto' }}>
+        <div style={{ padding: 20, maxHeight: preview ? 480 : 420, overflowY: 'auto' }}>
           {loading && (
             <div style={{ textAlign: 'center', padding: 40 }}>
               <div style={styles.spinner}></div>
@@ -266,7 +427,8 @@ export default function DataHubModal({ mode, onClose }) {
             </div>
           )}
 
-          {!loading && mode === 'import' && (
+          {/* ── IMPORT MODE ── */}
+          {!loading && !preview && mode === 'import' && (
             <div>
               <ActionBtn icon="📗" label="Google Sheets" desc={vi ? 'Import từ URL CSV' : 'Import from CSV URL'}
                 onClick={handleImportSheet} color="#059669" />
@@ -277,126 +439,133 @@ export default function DataHubModal({ mode, onClose }) {
             </div>
           )}
 
-          {!loading && mode === 'export' && (
+          {/* ── EXPORT MODE (no preview yet) ── */}
+          {!loading && !preview && mode === 'export' && (
             <div>
               <ActionBtn icon="🔤" label="JSON Dump" desc={vi ? 'Tải xuống toàn bộ dữ liệu' : 'Download all data as JSON'}
                 onClick={handleExportJson} color="#3B82F6" />
               <div style={{ marginTop: 16, marginBottom: 8, fontSize: 12, fontWeight: 600, color: '#9CA3AF' }}>
                 {vi ? 'HOẶC TẠO BÁO CÁO' : 'OR GENERATE REPORT'} →
               </div>
-              <ReportTemplateSelector onSelect={applyTemplate} lang={lang} />
+              <ReportTemplateSelector onSelect={generatePreview} lang={lang} />
             </div>
           )}
 
-          {!loading && (mode === 'report' || (mode === 'export' && step >= 1)) && (
+          {/* ── REPORT MODE (no preview yet) ── */}
+          {!loading && !preview && mode === 'report' && (
             <div>
-              {step === 0 && (
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 12 }}>
-                    {vi ? 'Chọn loại báo cáo:' : 'Select report type:'}
-                  </div>
-                  <ReportTemplateSelector onSelect={applyTemplate} lang={lang} />
-                </div>
-              )}
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 12 }}>
+                {vi ? 'Chọn loại báo cáo:' : 'Select report type:'}
+              </div>
+              <ReportTemplateSelector onSelect={generatePreview} lang={lang} />
+            </div>
+          )}
 
-              {step >= 1 && (
-                <div>
-                  {/* Title */}
-                  <label style={styles.label}>{vi ? 'Tiêu đề' : 'Report Title'}</label>
-                  <input style={styles.input} value={title}
-                    onChange={e => setTitle(e.target.value)} placeholder={vi ? 'Báo cáo của tôi' : 'My Report'} />
+          {/* ── REPORT PREVIEW ── */}
+          {!loading && preview && (
+            <div>
+              {/* Report rendered in iframe for clean styling */}
+              <div style={{
+                border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden',
+                background: '#fff', marginBottom: 16,
+              }}>
+                <iframe
+                  srcDoc={preview.html}
+                  style={{ width: '100%', height: 400, border: 'none' }}
+                  title={preview.title}
+                />
+              </div>
 
-                  {/* Format */}
-                  <label style={styles.label}>{vi ? 'Định dạng' : 'Format'}</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                    {Object.entries(FORMAT_DISPLAY).map(([key, f]) => (
-                      <div key={key} onClick={() => setFormat(key)}
-                        style={{
-                          ...styles.chip,
-                          background: format === key ? f.color : '#F3F4F6',
-                          color: format === key ? '#fff' : '#374151',
-                        }}>
-                        <span>{f.icon}</span>
-                        <span style={{ marginLeft: 4, fontSize: 11 }}>{f.name}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Collections */}
-                  <label style={styles.label}>{vi ? 'Bao gồm' : 'Include'}</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                    {Object.entries(collections).map(([key, val]) => {
-                      const labels = {
-                        people: vi ? '🧑 Con người' : '👤 People',
-                        events: vi ? '📅 Sự kiện' : '📅 Events',
-                        memories: vi ? '💭 Ký ức' : '💭 Memories',
-                        places: vi ? '📍 Địa điểm' : '📍 Places',
-                      };
-                      return (
-                        <div key={key} onClick={() => toggleColl(key)}
-                          style={{
-                            ...styles.chip,
-                            background: val ? '#10B981' : '#F3F4F6',
-                            color: val ? '#fff' : '#374151',
-                          }}>
-                          {val ? '✓' : '○'} {labels[key] || key}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Date Range */}
-                  <label style={styles.label}>{vi ? 'Khoảng thời gian (tuỳ chọn)' : 'Date Range (optional)'}</label>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                    <input type="date" style={{ ...styles.input, flex: 1, marginBottom: 0 }} value={dateFrom}
-                      onChange={e => setDateFrom(e.target.value)} />
-                    <span style={{ display: 'flex', alignItems: 'center', color: '#9CA3AF', fontSize: 12 }}>→</span>
-                    <input type="date" style={{ ...styles.input, flex: 1, marginBottom: 0 }} value={dateTo}
-                      onChange={e => setDateTo(e.target.value)} />
-                  </div>
-
-                  {/* Action buttons */}
-                  <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                    <button className="btn-secondary" style={{ flex: 1 }}
-                      onClick={() => {
-                        if (mode === 'export') { setStep(0); } else { setStep(0); }
-                      }}>
-                      ← {vi ? 'Quay lại' : 'Back'}
-                    </button>
-                    <button onClick={handleGenerateReport} style={{
-                      flex: 2, padding: 12, borderRadius: 12,
-                      background: '#7C3AED', color: '#fff', fontSize: 14, fontWeight: 700,
-                      border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', gap: 6,
-                    }}>
-                      📊 {vi ? 'Tạo báo cáo' : 'Generate'}
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Action buttons */}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => { setPreview(null); setPreviewType(null); }}
+                  className="btn-secondary" style={{ flex: 1, padding: 12, borderRadius: 12 }}>
+                  ← {vi ? 'Chọn lại' : 'Back'}
+                </button>
+                <button onClick={() => setShowFormatPicker(true)} style={{
+                  flex: 2, padding: 12, borderRadius: 12,
+                  background: '#E6002D', color: '#fff', fontSize: 14, fontWeight: 700,
+                  border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: 6,
+                }}>
+                  ⬇️ {vi ? 'Tải xuống' : 'Download'}
+                </button>
+              </div>
             </div>
           )}
 
           {result && (
             <div style={{
               padding: 12, borderRadius: 10, marginTop: 12,
-              background: result.type === 'success' ? '#D1FAE5' : result.type === 'info' ? '#DBEAFE' : '#FEE2E2',
-              color: result.type === 'success' ? '#065F46' : result.type === 'info' ? '#1E40AF' : '#991B1B',
+              background: result.type === 'success' ? '#D1FAE5' : '#FEE2E2',
+              color: result.type === 'success' ? '#065F46' : '#991B1B',
               fontSize: 13, fontWeight: 600,
             }}>
-              {result.type === 'success' ? '✅ ' : result.type === 'info' ? 'ℹ️ ' : '❌ '}
+              {result.type === 'success' ? '✅ ' : '❌ '}
               {result.message}
             </div>
           )}
         </div>
 
-        <div style={{ padding: '12px 20px', borderTop: '1px solid #F3F4F6', textAlign: 'right' }}>
-          <button onClick={onClose} style={{
-            padding: '8px 20px', borderRadius: 10,
-            background: '#F3F4F6', color: '#374151', fontSize: 13, fontWeight: 600,
-            border: 'none', cursor: 'pointer',
-          }}>{vi ? 'Đóng' : 'Close'}</button>
-        </div>
+        {/* Footer close */}
+        {!preview && (
+          <div style={{ padding: '12px 20px', borderTop: '1px solid #F3F4F6', textAlign: 'right' }}>
+            <button onClick={onClose} style={{
+              padding: '8px 20px', borderRadius: 10,
+              background: '#F3F4F6', color: '#374151', fontSize: 13, fontWeight: 600,
+              border: 'none', cursor: 'pointer',
+            }}>{vi ? 'Đóng' : 'Close'}</button>
+          </div>
+        )}
+
+        {/* ── FORMAT PICKER OVERLAY ── */}
+        {showFormatPicker && (
+          <div style={{
+            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center',
+            borderRadius: 20, zIndex: 10,
+          }}>
+            <div style={{
+              background: '#fff', margin: '0 20px', borderRadius: 16,
+              padding: 24, boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            }}>
+              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>
+                {vi ? 'Chọn định dạng tải xuống' : 'Choose download format'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {Object.entries(FORMAT_DISPLAY).map(([key, f]) => (
+                  <div key={key} onClick={() => doDownload(key)} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 16px', borderRadius: 12,
+                    cursor: 'pointer', background: '#F9FAFB',
+                    border: '1px solid #E5E7EB',
+                    transition: 'all 0.15s',
+                  }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 12,
+                      background: f.color + '20', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                    }}>{f.icon}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{f.name}</div>
+                      <div style={{ fontSize: 11, color: '#6B7280' }}>
+                        {key === 'json' ? (vi ? 'Dữ liệu thô, có thể import lại' : 'Raw data, re-importable')
+                          : key === 'csv' ? (vi ? 'Mở được bằng Excel, Google Sheets' : 'Open in Excel, Google Sheets')
+                          : key === 'print' ? (vi ? 'In hoặc lưu PDF từ trình duyệt' : 'Print or save as PDF') : ''}
+                      </div>
+                    </div>
+                    <span style={{ color: f.color }}>→</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setShowFormatPicker(false)} style={{
+                width: '100%', marginTop: 12, padding: 10, borderRadius: 10,
+                background: '#F3F4F6', border: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: 600, color: '#6B7280',
+              }}>{vi ? 'Huỷ' : 'Cancel'}</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -439,9 +608,6 @@ function ReportTemplateSelector({ onSelect, lang }) {
             <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>
               {vi ? tmpl.descVI : tmpl.descEN}
             </div>
-            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>
-              📦 {tmpl.collections.join(', ')}
-            </div>
           </div>
           <span style={{ color: '#7C3AED', fontSize: 18 }}>→</span>
         </div>
@@ -457,25 +623,12 @@ const styles = {
     zIndex: 1000,
   },
   modal: {
-    width: 420, maxWidth: '90vw', borderRadius: 20,
+    width: 520, maxWidth: '90vw', borderRadius: 20,
     background: '#fff', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+    position: 'relative',
   },
   header: {
     padding: '20px 24px', display: 'flex', alignItems: 'center',
-  },
-  label: {
-    display: 'block', fontSize: 12, fontWeight: 600, color: '#374151',
-    marginBottom: 6, marginTop: 8,
-  },
-  input: {
-    width: '100%', padding: '10px 12px', borderRadius: 10,
-    border: '1px solid #D1D5DB', fontSize: 13,
-    outline: 'none', marginBottom: 12, boxSizing: 'border-box',
-  },
-  chip: {
-    padding: '6px 12px', borderRadius: 20, cursor: 'pointer',
-    fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center',
-    transition: 'all 0.15s',
   },
   spinner: {
     width: 32, height: 32, borderRadius: '50%',
