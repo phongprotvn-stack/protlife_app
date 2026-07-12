@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext.jsx';
 import { Globe, Download, Upload, Trash2, Info, ChevronRight, Cloud, CloudOff, RefreshCw, Database, Shield, UserCheck } from 'lucide-react';
 import { t } from '../i18n';
 import DataHubModal from '../components/DataHubModal.jsx';
+import ReportPage from './ReportPage.jsx';
 
 export default function Settings() {
-  const { settings, lang, toggleLang, exportData, importData, clearAllData, cleanDuplicates, user, isLoggedIn, isSyncing, userRole, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut, showToast } = useApp();
+  const { settings, lang, toggleLang, exportData, importData, clearAllData, cleanDuplicates, user, isLoggedIn, isSyncing, userRole, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut, showToast, people, events, memories, places } = useApp();
   const [authMode, setAuthMode] = useState('google');
   const [authEmail, setAuthEmail] = useState('');
   const [authPass, setAuthPass] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [hubModal, setHubModal] = useState(null); // null | 'import' | 'export' | 'report'
+  const [reportPage, setReportPage] = useState(null); // null | template object
 
   const handleEmailAuth = async () => {
     try {
@@ -20,6 +22,25 @@ export default function Settings() {
       setAuthPass('');
     } catch {}
   };
+
+  const handleGenerateReport = (tmpl) => {
+    setHubModal(null);
+    setReportPage(tmpl);
+  };
+
+  // If report page is active, show it full-screen
+  if (reportPage) {
+    return (
+      <ReportPage
+        people={people}
+        events={events}
+        memories={memories}
+        places={places}
+        lang={lang}
+        onClose={() => setReportPage(null)}
+      />
+    );
+  }
 
   const menuSections = [
     {
@@ -219,7 +240,7 @@ export default function Settings() {
       </div>
 
       {/* Data Hub Modal */}
-      {hubModal && <DataHubModal mode={hubModal} onClose={() => setHubModal(null)} />}
+      {hubModal && <DataHubModal mode={hubModal} onClose={() => setHubModal(null)} onGenerateReport={handleGenerateReport} />}
 
       {/* App Info */}
       <div style={{ marginBottom: 20 }}>

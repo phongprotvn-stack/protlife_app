@@ -60,7 +60,7 @@ const REPORT_TEMPLATES = [
   },
 ];
 
-export default function DataHubModal({ mode, onClose }) {
+export default function DataHubModal({ mode, onClose, onGenerateReport }) {
   const { lang, showToast, people, events, memories, places } = useApp();
   const vi = lang === 'vi';
 
@@ -447,7 +447,10 @@ export default function DataHubModal({ mode, onClose }) {
               <div style={{ marginTop: 16, marginBottom: 8, fontSize: 12, fontWeight: 600, color: '#9CA3AF' }}>
                 {vi ? 'HOẶC TẠO BÁO CÁO' : 'OR GENERATE REPORT'} →
               </div>
-              <ReportTemplateSelector onSelect={generatePreview} lang={lang} />
+              <ReportTemplateSelector onSelect={tmpl => {
+                if (onGenerateReport) { onGenerateReport(tmpl); }
+                else { generatePreview(tmpl); }
+              }} lang={lang} />
             </div>
           )}
 
@@ -457,7 +460,10 @@ export default function DataHubModal({ mode, onClose }) {
               <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 12 }}>
                 {vi ? 'Chọn loại báo cáo:' : 'Select report type:'}
               </div>
-              <ReportTemplateSelector onSelect={generatePreview} lang={lang} />
+              <ReportTemplateSelector onSelect={tmpl => {
+                if (onGenerateReport) { onGenerateReport(tmpl); }
+                else { generatePreview(tmpl); }
+              }} lang={lang} />
             </div>
           )}
 
