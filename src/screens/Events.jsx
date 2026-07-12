@@ -3,7 +3,7 @@ import { useApp } from '../contexts/AppContext';
 import { Plus, Search, X, CalendarHeart, MapPin, Trash2, Edit3 } from 'lucide-react';
 import { t, formatDate } from '../i18n';
 
-const EVENT_TYPES = ['wedding', 'birthday', 'travel', 'party', 'sport', 'meeting', 'dinner', 'other'];
+const EVENT_TYPES = ['meeting', 'birthday', 'travel', 'work', 'sport', 'hospital', 'meal', 'call', 'shopping', 'study', 'party', 'date', 'appointment', 'other'];
 
 const MOOD_OPTIONS = ['', 'Happy', 'Normal', 'Sad', 'Excited', 'Tired', 'Angry', 'Thoughtful', 'Loved'];
 const IMPORTANCE_OPTIONS = ['', '1 - Lowest', '2 - Low', '3 - Medium', '4 - High', '5 - Highest'];
@@ -29,20 +29,36 @@ export default function Events({ events, people, places, memories, addEvent, upd
 
   const [personSearch, setPersonSearch] = useState('');
   const [placeSuggestions, setPlaceSuggestions] = useState([]);
-  const [selectedPlace, setSelectedPlace] = useState(null); // { lat, lon, display_name }
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [searchVietnam, setSearchVietnam] = useState(true);
   const searchTimeout = useRef(null);
 
   const handlePlaceSearch = (text) => {
     setForm(p => ({ ...p, locationName: text }));
-    // Clear selected place when user re-types
     if (text !== selectedPlace?.display_name) setSelectedPlace(null);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     if (!text || text.length < 2) { setPlaceSuggestions([]); return; }
     searchTimeout.current = setTimeout(async () => {
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(text)}`);
+        const countryFilter = searchVietnam ? '&countrycodes=vn' : '';
+        // Also set Vietnamese language for better results
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=vi${countryFilter}&q=${encodeURIComponent(text)}`
+        );
         const data = await res.json();
-        setPlaceSuggestions(data);
+        // If Vietnam results are few, also do a global search and merge
+        if (searchVietnam && data.length < 3) {
+          const res2 = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=4&accept-language=vi&q=${encodeURIComponent(text)}`
+          );
+          const data2 = await res2.json();
+          // Merge, dedup by place_id
+          const seen = new Set(data.map(d => d.place_id));
+          const merged = [...data, ...data2.filter(d => !seen.has(d.place_id))];
+          setPlaceSuggestions(merged);
+        } else {
+          setPlaceSuggestions(data);
+        }
       } catch (e) {}
     }, 500);
   };
@@ -132,7 +148,12 @@ export default function Events({ events, people, places, memories, addEvent, upd
 
   // Event type emoji
   const eventEmoji = (tp) => {
-    const map = { wedding: '💍', birthday: '🎂', travel: '✈️', party: '🎉', sport: '🏆', meeting: '🤝', dinner: '🍽️' };
+    const map = { 
+      meeting: '🤝', birthday: '🎂', travel: '✈️', work: '💼',
+      sport: '🏆', hospital: '🏥', meal: '🍽️', call: '📞',
+      shopping: '🛍️', study: '📚', party: '🎉', date: '💑',
+      appointment: '📅',
+    };
     return map[tp] || '📌';
   };
 
@@ -291,6 +312,75 @@ export default function Events({ events, people, places, memories, addEvent, upd
                 </div>
               </div>
 
+              {/* ─── Participants ─── */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                  👥 {t('events.people', lang)}
+                </div>
+                {/* Selected participants chips */}
+                {form.peopleIds.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    {form.peopleIds.map(id => {
+                      const p = people.find(x => x.id === id);
+                      if (!p) return null;
+                      return (
+                        <div key={id} style={{
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          padding: '4px 10px 4px 4px', borderRadius: 20,
+                          background: '#EEF2FF', border: '1px solid #C7D2FE',
+                        }}>
+                          <div style={{
+                            width: 22, height: 22, borderRadius: 11,
+                            background: '#6366F1', color: '#fff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 10, fontWeight: 700,
+                          }}>
+                            {p.name?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#4338CA' }}>{p.name}</span>
+                          <X size={12} color="#6366F1" style={{ cursor: 'pointer', marginLeft: 2, opacity: 0.6 }}
+                            onClick={() => setForm(prev => ({ ...prev, peopleIds: prev.peopleIds.filter(x => x !== id) }))} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {/* Search participants */}
+                <div style={{ position: 'relative' }}>
+                  <Search size={16} color="#9CA3AF" style={{ position: 'absolute', left: 12, top: 12 }} />
+                  <input className="input-pill" style={{ paddingLeft: 36 }}
+                    placeholder={lang === 'vi' ? 'Tìm người tham gia...' : 'Search participants...'}
+                    value={personSearch} onChange={e => setPersonSearch(e.target.value)} />
+                  {filteredPeople.length > 0 && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff',
+                      borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, marginTop: 4, padding: 4,
+                    }}>
+                      {filteredPeople.map(p => (
+                        <div key={p.id} style={{
+                          padding: '10px 12px', fontSize: 14, cursor: 'pointer', borderRadius: 8,
+                          display: 'flex', alignItems: 'center', gap: 8,
+                        }}
+                          onMouseEnter={e => e.target.style.background = '#F3F4F6'}
+                          onMouseLeave={e => e.target.style.background = 'transparent'}
+                          onClick={() => { setForm(prev => ({ ...prev, peopleIds: [...prev.peopleIds, p.id] })); setPersonSearch(''); }}>
+                          <div style={{
+                            width: 28, height: 28, borderRadius: 14,
+                            background: '#6366F1', color: '#fff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 11, fontWeight: 700, flexShrink: 0,
+                          }}>
+                            {p.name?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                          <span style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</span>
+                          <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 'auto' }}>+ Thêm</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* ─── Mood + Importance + LifeStage + Source ─── */}
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
@@ -377,9 +467,24 @@ export default function Events({ events, people, places, memories, addEvent, upd
                   /* ─── Search mode ─── */
                   <div style={{ position: 'relative' }}>
                     <MapPin size={16} color="#9CA3AF" style={{ position: 'absolute', left: 12, top: 12 }} />
-                    <input className="input-pill" style={{ paddingLeft: 36 }}
-                      placeholder={lang === 'vi' ? 'Gõ tìm địa điểm trên Google Maps...' : 'Search Google Maps for a place...'}
+                    <input className="input-pill" style={{ paddingLeft: 36, paddingRight: 90 }}
+                      placeholder={lang === 'vi' ? 'Gõ tìm địa điểm...' : 'Search a place...'}
                       value={form.locationName} onChange={e => handlePlaceSearch(e.target.value)} />
+                    {/* Vietnam / Global toggle */}
+                    <div style={{ position: 'absolute', right: 8, top: 6, display: 'flex', gap: 2 }}>
+                      <span onClick={() => { setSearchVietnam(true); if (form.locationName?.length >= 2) handlePlaceSearch(form.locationName); }}
+                        style={{
+                          padding: '4px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                          background: searchVietnam ? '#E6002D' : '#F3F4F6',
+                          color: searchVietnam ? '#fff' : '#9CA3AF',
+                        }}>VN</span>
+                      <span onClick={() => { setSearchVietnam(false); if (form.locationName?.length >= 2) handlePlaceSearch(form.locationName); }}
+                        style={{
+                          padding: '4px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                          background: !searchVietnam ? '#6366F1' : '#F3F4F6',
+                          color: !searchVietnam ? '#fff' : '#9CA3AF',
+                        }}>🌍</span>
+                    </div>
                     {placeSuggestions.length > 0 && (
                       <div style={{
                         position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff',
