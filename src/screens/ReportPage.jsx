@@ -36,6 +36,31 @@ const resolvePeople = (peopleIds, allPeople) => {
   }).join(', ');
 };
 
+// Generate EventID in Excel format: EV + YYYYMMDD + 3-digit per-date sequence
+const buildEventIdMap = (sortedEvents) => {
+  const map = new Map();
+  const seq = {};
+  sortedEvents.forEach((e) => {
+    if (e.date) {
+      const key = e.date.replace(/-/g, '');
+      seq[key] = (seq[key] || 0) + 1;
+      map.set(e.id, `EV${key}${String(seq[key]).padStart(3, '0')}`);
+    } else {
+      map.set(e.id, `EV${String(sortedEvents.indexOf(e) + 1).padStart(4, '0')}`);
+    }
+  });
+  return map;
+};
+
+// Generate ContactID in Excel format: C + 4-digit zero-padded index
+const buildContactIdMap = (peopleList) => {
+  const map = new Map();
+  peopleList.forEach((p, i) => {
+    map.set(p.id, `C${String(i + 1).padStart(4, '0')}`);
+  });
+  return map;
+};
+
 export default function ReportPage({ people, events, memories, places, lang, onClose }) {
   const [reportType, setReportType] = useState('events');
   const [dateFrom, setDateFrom] = useState('');
@@ -49,13 +74,18 @@ export default function ReportPage({ people, events, memories, places, lang, onC
   const showPeople = meta.showPeople;
   const showPlaces = reportType === 'full';
 
-  // Filter by date range
+  // Filter by date range, sorted ascending by date
   const filteredEvents = useMemo(() => {
     if (!showEventTables) return [];
     return events.filter(e => {
       if (dateFrom && e.date && e.date < dateFrom) return false;
       if (dateTo && e.date && e.date > dateTo) return false;
       return true;
+    }).sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
     });
   }, [events, dateFrom, dateTo, showEventTables]);
 
@@ -67,6 +97,10 @@ export default function ReportPage({ people, events, memories, places, lang, onC
       return true;
     });
   }, [memories, dateFrom, dateTo, showMemories]);
+
+  // Generate formatted IDs matching Excel format
+  const eventIdMap = useMemo(() => buildEventIdMap(filteredEvents), [filteredEvents]);
+  const contactIdMap = useMemo(() => buildContactIdMap(people), [people]);
 
   // ── Open report HTML in new tab for Print / PDF ──
   const openReportHtml = () => {
@@ -99,8 +133,9 @@ export default function ReportPage({ people, events, memories, places, lang, onC
         <th class="num">Cost</th><th>Map Link</th><th>Participants</th>
       </tr></thead><tbody>`;
       filteredEvents.forEach((e, i) => {
+        const evId = eventIdMap.get(e.id) || e.id;
         html += `<tr>
-          <td>${i + 1}</td><td>${e.id || ''}</td><td><b>${esc(e.title)}</b></td>
+          <td>${i + 1}</td><td>${evId}</td><td><b>${esc(e.title)}</b></td>
           <td>${esc(e.date)}</td><td>${esc(e.endDate)}</td><td>${esc(e.eventType)}</td>
           <td>${esc(e.locationName || e.location)}</td><td>${esc(e.notes)}</td><td>${esc(e.mood)}</td>
           <td>${esc(e.importance)}</td><td>${esc(e.lifeStage)}</td><td>${esc(e.source)}</td>
@@ -142,8 +177,9 @@ export default function ReportPage({ people, events, memories, places, lang, onC
         <th>Status</th><th>Favorite</th><th class="num">Score</th><th>Source</th>
       </tr></thead><tbody>`;
       people.forEach((p, i) => {
+        const cId = contactIdMap.get(p.id) || p.id;
         html += `<tr>
-          <td>${i + 1}</td><td>${esc(p.id)}</td><td><b>${esc(p.name)}</b></td>
+          <td>${i + 1}</td><td>${cId}</td><td><b>${esc(p.name)}</b></td>
           <td>${esc(p.gender)}</td><td>${esc(p.dob)}</td><td>${esc(p.relationship)}</td>
           <td>${esc(p.organization)}</td><td></td>
           <td>${esc(Array.isArray(p.phones) ? p.phones.join(', ') : p.phones)}</td>
@@ -182,7 +218,7 @@ export default function ReportPage({ people, events, memories, places, lang, onC
         'Notes', 'Mood', 'Importance', 'Life Stage', 'Source',
         'Cost', 'Link Google Maps', 'Participants'];
       const rows = filteredEvents.map((e, i) => [
-        i + 1, e.id || '', e.title || '', e.date || '', e.endDate || '', e.eventType || '',
+        i + 1, eventIdMap.get(e.id) || e.id || '', e.title || '', e.date || '', e.endDate || '', e.eventType || '',
         e.locationName || e.location || '', e.notes || '',
         e.mood || '', e.importance || '', e.lifeStage || '',
         e.source || '', e.cost ? Number(e.cost) : '', e.mapLink || '',
@@ -212,7 +248,7 @@ export default function ReportPage({ people, events, memories, places, lang, onC
         'Organization 1', 'Organization 2', 'Phone', 'Email', 'Address', 'Notes',
         'Status', 'Is Favorite', 'Relationship Score', 'Source'];
       const rows = people.map((p, i) => [
-        i + 1, p.id || '', p.name || '', p.gender || '', p.dob || '', p.relationship || '',
+        i + 1, contactIdMap.get(p.id) || p.id || '', p.name || '', p.gender || '', p.dob || '', p.relationship || '',
         p.organization || '', '',
         Array.isArray(p.phones) ? p.phones.join(', ') : p.phones || '',
         Array.isArray(p.emails) ? p.emails.join(', ') : p.emails || '',
@@ -272,7 +308,7 @@ export default function ReportPage({ people, events, memories, places, lang, onC
         const rows = [new TableRow({ tableHeader: true, children: hdr.map(h => mkCell(h, true)) })];
         for (const [i, e] of filteredEvents.entries()) {
           rows.push(new TableRow({ children: [
-            mkCell(String(i + 1)), mkCell(e.id), mkCell(e.title), mkCell(e.date),
+            mkCell(String(i + 1)), mkCell(eventIdMap.get(e.id) || e.id || ''), mkCell(e.title), mkCell(e.date),
             mkCell(e.endDate), mkCell(e.eventType),
             mkCell(e.locationName || e.location),
             mkCell(e.cost ? Number(e.cost).toLocaleString() + 'd' : ''),
@@ -310,7 +346,7 @@ export default function ReportPage({ people, events, memories, places, lang, onC
         const rows = [new TableRow({ tableHeader: true, children: hdr.map(h => mkCell(h, true)) })];
         for (const [i, p] of people.entries()) {
           rows.push(new TableRow({ children: [
-            mkCell(String(i + 1)), mkCell(p.id), mkCell(p.name),
+            mkCell(String(i + 1)), mkCell(contactIdMap.get(p.id) || p.id || ''), mkCell(p.name),
             mkCell(p.relationship), mkCell(String(p.relationshipScore ?? '')),
             mkCell(p.status), mkCell(p.source),
           ] }));
@@ -490,7 +526,7 @@ export default function ReportPage({ people, events, memories, places, lang, onC
                   {filteredEvents.map((e, i) => (
                     <tr key={e.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={tdStyle}>{i + 1}</td>
-                      <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}>{e.id || ''}</td>
+                      <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}>{eventIdMap.get(e.id) || e.id || ''}</td>
                       <td style={tdStyle}><strong>{e.title || ''}</strong></td>
                       <td style={tdStyle}>{e.date || ''}</td>
                       <td style={tdStyle}>{e.endDate || ''}</td>
@@ -586,7 +622,7 @@ export default function ReportPage({ people, events, memories, places, lang, onC
                   {people.map((p, i) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={tdStyle}>{i + 1}</td>
-                      <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}>{p.id || ''}</td>
+                      <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}>{contactIdMap.get(p.id) || p.id || ''}</td>
                       <td style={tdStyle}><strong>{p.name || ''}</strong></td>
                       <td style={tdStyle}>{p.gender || ''}</td>
                       <td style={tdStyle}>{p.dob || ''}</td>
