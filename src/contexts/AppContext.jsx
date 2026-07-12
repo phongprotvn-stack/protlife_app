@@ -3,6 +3,7 @@ import {
   onAuthChange, signInWithGoogle as fbSignInGoogle,
   signInWithEmail as fbSignInEmail, signUpWithEmail as fbSignUpEmail,
   signOutUser as fbSignOut,
+  getGoogleRedirectResult,
   loadTagsFromFirestore, subscribeToFirestore,
 } from '../firebase/firebase';
 import { initApiClient, apiPeople, apiEvents, apiMemories, apiPlaces, apiGroups, apiDataHub } from '../api/client';
@@ -214,8 +215,14 @@ export function AppProvider({ children }) {
     initApiClient();
   }, []);
 
-  // Firebase Auth listener
+  // Firebase Auth listener + handle redirect result (iOS PWA)
   useEffect(() => {
+    // Handle redirect from Google sign-in (iOS PWA / standalone)
+    getGoogleRedirectResult().then(user => {
+      if (user) {
+        console.log('🔐 Google redirect sign-in successful:', user.email);
+      }
+    });
     const unsub = onAuthChange(async (fbUser) => {
       if (fbUser) {
         setUser({ uid: fbUser.uid, email: fbUser.email, displayName: fbUser.displayName || fbUser.email?.split('@')[0] || 'User' });

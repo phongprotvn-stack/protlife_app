@@ -4,7 +4,7 @@ import {
   collection, writeBatch, getDocs, onSnapshot,
 } from 'firebase/firestore';
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signOut,
+  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut,
   createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged,
 } from 'firebase/auth';
 
@@ -36,10 +36,32 @@ export function onAuthChange(callback) {
   return onAuthStateChanged(auth, callback);
 }
 
+// Detect iOS PWA / standalone mode (home screen app)
+const isStandalone = () => {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+};
+
 export async function signInWithGoogle() {
   if (!auth || !googleProvider) throw new Error('Firebase not initialized');
+  // iOS Safari PWA blocks popups — use redirect instead
+  if (isStandalone()) {
+    await signInWithRedirect(auth, googleProvider);
+    return null; // redirecting, won't return here
+  }
   const result = await signInWithPopup(auth, googleProvider);
   return result.user;
+}
+
+export async function getGoogleRedirectResult() {
+  if (!auth) return null;
+  try {
+    const result = await getRedirectResult(auth);
+    return result?.user || null;
+  } catch (e) {
+    console.warn('getRedirectResult error:', e.code, e.message);
+    return null;
+  }
 }
 
 export async function signInWithEmail(email, password) {
