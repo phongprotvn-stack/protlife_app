@@ -15,6 +15,14 @@ const RELATIONSHIP_GROUPS = [
   'Family', 'Relative', 'Friend', 'Colleague',
 ];
 
+// Predefined Org 1 & Org 2 lists matching Excel import data
+const ORG1_NAMES = new Set([
+  '9A', 'Bạn cao học', 'Bạn du lịch', 'Bạn đại học', 'Bạn kết nối',
+  'Bạn tìm hiểu', 'Bang hội', 'Gia đình', 'Họ hàng', 'Nghĩa Tân',
+  'PCRT', 'Quảng Trị', 'SBV', 'TN1', 'VCB',
+]);
+const ORG2_NAMES = new Set(['Sư đoàn Mõm', '3 Musketeers']);
+
 const SCORE_LEVELS = [
   { range: [1, 29], key: 'scoreAcquainted', label: 'Quen biết', emoji: '⚪' },
   { range: [30, 49], key: 'scoreFriendly', label: 'Bạn bè', emoji: '🟢' },
@@ -286,6 +294,17 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
   const orgs = useMemo(() => {
     return [...groups].sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   }, [groups]);
+
+  // Filtered orgs for Tổ chức 1 & Tổ chức 2 (from predefined lists + current selection)
+  const org1List = useMemo(() => {
+    const current = form.organizations[0];
+    return orgs.filter(g => ORG1_NAMES.has(g.name) || g.name === current);
+  }, [orgs, form.organizations[0]]);
+
+  const org2List = useMemo(() => {
+    const current = form.organizations[1];
+    return orgs.filter(g => ORG2_NAMES.has(g.name) || g.name === current);
+  }, [orgs, form.organizations[1]]);
 
   const filtered = useMemo(() => {
     let list = [...people];
@@ -750,7 +769,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
               {/* Tổ chức 1 */}
               <SingleOrgSelector
                 label="Tổ chức 1"
-                orgs={orgs}
+                orgs={org1List}
                 value={form.organizations[0] || ''}
                 onChange={v => {
                   const arr = [...form.organizations];
@@ -765,7 +784,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
               {/* Tổ chức 2 */}
               <SingleOrgSelector
                 label="Tổ chức 2"
-                orgs={orgs}
+                orgs={org2List}
                 value={form.organizations[1] || ''}
                 onChange={v => {
                   const arr = [...form.organizations];
