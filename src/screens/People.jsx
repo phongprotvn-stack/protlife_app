@@ -523,36 +523,36 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
                 key={p.id}
                 className="card"
                 onClick={() => onSelectPerson(p.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', cursor: 'pointer' }}
               >
                 {/* Avatar */}
                 <div style={{
-                  width: 48, height: 48, borderRadius: 16,
+                  width: 42, height: 42, borderRadius: 14,
                   background: 'var(--grad-primary)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 20, fontWeight: 800, color: 'white', flexShrink: 0,
+                  fontSize: 17, fontWeight: 800, color: 'white', flexShrink: 0,
                 }}>
                   {(p.name || '?')[0].toUpperCase()}
                 </div>
 
                 {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {p.isFavorite && <span style={{ fontSize: 14 }}>🌟</span>}
-                    <span style={{ fontSize: 15, fontWeight: 700 }}>{p.name}</span>
-                    {p.relationship && <span className="chip-tag" style={{ background: '#6366F1', fontSize: 9, padding: '1px 6px' }}>{p.relationship}</span>}
+                <div className="card-safe" style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                    {p.isFavorite && <span style={{ fontSize: 12, flexShrink: 0 }}>🌟</span>}
+                    <span style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{p.name}</span>
+                    {p.relationship && <span className="chip-tag" style={{ background: '#6366F1', fontSize: 8, padding: '1px 5px', flexShrink: 0 }}>{p.relationship}</span>}
                     {p.status && p.status !== 'Active' && (
                       <span className="chip-tag" style={{
                         background: p.status === 'Deceased' ? '#374151' : p.status === 'Lost Contact' ? '#F59E0B' : p.status === 'Blocked' ? '#E6002D' : '#6366F1',
-                        fontSize: 9, padding: '1px 6px'
+                        fontSize: 8, padding: '1px 5px', flexShrink: 0
                       }}>{p.status}</span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {p.gender && <span style={{ fontSize: 11, color: '#9CA3AF' }}>{p.gender === 'male' ? '♂' : p.gender === 'female' ? '♀' : '⚧'}</span>}
-                    {displayPhone && <span style={{ fontSize: 11, color: '#9CA3AF' }}>📞 {displayPhone}</span>}
-                    {(p.organizations || (p.organization ? [p.organization] : [])).slice(0, 3).map(org => (
-                      <span key={org} className="chip-tag" style={{ background: '#6366F1', fontSize: 9, padding: '1px 6px' }}>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {p.gender && <span style={{ fontSize: 10, color: '#9CA3AF' }}>{p.gender === 'male' ? '♂' : p.gender === 'female' ? '♀' : '⚧'}</span>}
+                    {displayPhone && <span className="truncate" style={{ fontSize: 10, color: '#9CA3AF', maxWidth: 120 }}>📞 {displayPhone}</span>}
+                    {(p.organizations || (p.organization ? [p.organization] : [])).slice(0, 2).map(org => (
+                      <span key={org} className="chip-tag" style={{ background: '#6366F1', fontSize: 8, padding: '1px 5px' }}>
                         {org}
                       </span>
                     ))}
@@ -560,14 +560,14 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
                 </div>
 
                 {/* Score */}
-                <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: s.color || '#E6002D' }}>{s.emoji}</div>
-                  <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600 }}>{p.relationshipScore || 0}</div>
+                <div style={{ textAlign: 'center', flexShrink: 0, minWidth: 32 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: s.color || '#E6002D' }}>{s.emoji}</div>
+                  <div style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 600 }}>{p.relationshipScore || 0}</div>
                 </div>
 
                 {/* Edit button */}
                 <div onClick={e => { e.stopPropagation(); handleEdit(p); }}
-                  style={{ fontSize: 11, color: '#6B7280', cursor: 'pointer', flexShrink: 0 }}>
+                  style={{ fontSize: 10, color: '#6B7280', cursor: 'pointer', flexShrink: 0, padding: 2 }}>
                   ✏️
                 </div>
               </div>

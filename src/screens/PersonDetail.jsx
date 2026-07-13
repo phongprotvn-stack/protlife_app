@@ -315,7 +315,10 @@ export default function PersonDetail({ person, events, memories, onBack, onDelet
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>📋 Liên hệ</div>
           {fields.map((f, i) => (
             <div key={i} className="action-field" style={{ padding: '8px 0' }}>
-              <div className="af-label"><f.icon size={16} color="#9CA3AF" />{f.label}</div>
+              <div className="af-label" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                <f.icon size={16} color="#9CA3AF" style={{ flexShrink: 0 }} />
+                {f.label.length > 60 ? f.label.substring(0, 60) + '...' : f.label}
+              </div>
             </div>
           ))}
           {person.notes && (

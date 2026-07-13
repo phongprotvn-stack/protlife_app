@@ -89,8 +89,21 @@ body {
   padding: var(--space-card-inner);
   box-shadow: var(--shadow-soft);
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  overflow: hidden;
 }
 .card:active { transform: scale(0.98); }
+
+/* Card content safe area — prevents overflow on mobile */
+.card-safe {
+  min-width: 0;
+  overflow: hidden;
+  word-break: break-word;
+}
+.card-safe .truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .card-flat {
   background: var(--color-card);
   border-radius: var(--r-card);
@@ -351,7 +364,7 @@ html { overscroll-behavior: none; }
 }
 .action-field:last-child { border-bottom: none; }
 .action-field:active { opacity: 0.65; }
-.af-label { font-size: 14px; font-weight: 600; color: var(--color-text-primary); display: flex; align-items: center; gap: 8px; }
+.af-label { font-size: 14px; font-weight: 600; color: var(--color-text-primary); display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .af-value { font-size: 14px; color: var(--color-text-secondary); text-align: right; max-width: 60%; }
 
 /* ===== Modal Overlay ===== */

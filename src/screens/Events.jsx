@@ -166,15 +166,15 @@ export default function Events({ events, people, places, memories, addEvent, upd
             const eventPeople = (e.peopleIds || []).map(pid => people.find(p => p.id === pid)).filter(Boolean);
             const eventPlace = e.placeId ? places.find(p => p.id === e.placeId) : null;
             return (
-              <div key={e.id} className="card" style={{ padding: '14px 16px', cursor: 'pointer' }}
+              <div key={e.id} className="card" style={{ padding: '12px 14px', cursor: 'pointer' }}
                 onClick={() => openEdit(e)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 16, background: '#F1F1F4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 12, background: '#F1F1F4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>
                     {eventEmoji(e.eventType)}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ fontSize: 15, fontWeight: 700 }}>{e.title}</div>
+                  <div className="card-safe" style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                      <div className="truncate" style={{ fontSize: 14, fontWeight: 700, maxWidth: 180 }}>{e.title}</div>
                       {(() => {
                         const count = (memories || []).filter(m => m.eventId === e.id).length;
                         return count > 0 ? (
@@ -209,18 +209,21 @@ export default function Events({ events, people, places, memories, addEvent, upd
                       </div>
                     )}
                     {e.cost > 0 && (
-                      <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                      <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>
                         💰 {e.cost.toLocaleString()}đ
                       </div>
                     )}
                     {e.mapLink && (
-                      <div style={{ fontSize: 11, color: '#3B82F6', marginTop: 2 }}>
-                        🔗 {e.mapLink}
+                      <div style={{ fontSize: 10, color: '#3B82F6', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+                        🔗 {e.mapLink.length > 50 ? e.mapLink.substring(0, 50) + '...' : e.mapLink}
                       </div>
                     )}
                   </div>
                 </div>
-                {e.notes && <div style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic', marginTop: 8 }}>{e.notes}</div>}
+                {e.notes && <div style={{
+                  fontSize: 11, color: '#6B7280', fontStyle: 'italic', marginTop: 6,
+                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                }}>{e.notes}</div>}
               </div>
             );
           })}

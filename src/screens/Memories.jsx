@@ -94,13 +94,12 @@ export default function Memories({ memories, people, places, events, addMemory, 
 
             return (
               <div key={m.id} className="card" style={{
-                padding: '14px 16px',
+                padding: '12px 14px',
                 borderLeft: `4px solid ${moodColor}`,
                 cursor: 'pointer',
                 position: 'relative',
               }}
                 onClick={() => {
-                  // Toggle edit mode — just show content for now
                   const linkedEvent = m.eventId ? events.find(e => e.id === m.eventId) : null;
                   const info = [
                     m.date ? `📅 ${formatDate(m.date)}` : '',
@@ -115,53 +114,53 @@ export default function Memories({ memories, people, places, events, addMemory, 
                   ].join('');
                   alert(msg);
                 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   <div style={{
-                    fontSize: 28, flexShrink: 0, width: 44, height: 44, borderRadius: 12,
+                    fontSize: 24, flexShrink: 0, width: 38, height: 38, borderRadius: 10,
                     background: `${moodColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>{MOOD_EMOJIS[m.mood] || '💭'}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ fontSize: 15, fontWeight: 700 }}>{m.title}</div>
+                  <div className="card-safe" style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', paddingRight: 24 }}>
+                      <div className="truncate" style={{ fontSize: 14, fontWeight: 700, maxWidth: 170 }}>{m.title}</div>
                       {m.eventId && (() => {
                         const linkedEvent = events.find(e => e.id === m.eventId);
                         return linkedEvent ? (
-                          <span style={{ fontSize: 10, background: '#EEF2FF', color: '#4F46E5', padding: '1px 8px', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                            📌 {linkedEvent.title}
+                          <span style={{ fontSize: 9, background: '#EEF2FF', color: '#4F46E5', padding: '1px 6px', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            📌 {linkedEvent.title.length > 20 ? linkedEvent.title.substring(0, 20) + '...' : linkedEvent.title}
                           </span>
                         ) : null;
                       })()}
                     </div>
-                    {m.date && <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{formatDate(m.date)}</div>}
+                    {m.date && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{formatDate(m.date)}</div>}
                     {m.content && (
-                      <div style={{ fontSize: 13, color: '#6B7280', marginTop: 6, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {m.content}
                       </div>
                     )}
                     {memoryPeople.length > 0 && (
-                      <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap' }}>
                         {memoryPeople.slice(0, 3).map(p => (
-                          <span key={p.id} style={{ fontSize: 11, background: '#F1F1F4', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>
+                          <span key={p.id} style={{ fontSize: 10, background: '#F1F1F4', padding: '1px 7px', borderRadius: 8, fontWeight: 600 }}>
                             {p.name}
                           </span>
                         ))}
-                        {memoryPeople.length > 3 && <span style={{ fontSize: 11, color: '#9CA3AF' }}>+{memoryPeople.length - 3}</span>}
+                        {memoryPeople.length > 3 && <span style={{ fontSize: 10, color: '#9CA3AF' }}>+{memoryPeople.length - 3}</span>}
                       </div>
                     )}
                     {memoryPlace && (
-                      <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>📍 {memoryPlace.name}</div>
+                      <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 3 }}>📍 {memoryPlace.name}</div>
                     )}
                     <div style={{
-                      display: 'inline-block', marginTop: 8,
-                      fontSize: 10, fontWeight: 700, color: moodColor,
+                      display: 'inline-block', marginTop: 4,
+                      fontSize: 9, fontWeight: 700, color: moodColor,
                       background: `${moodColor}15`,
-                      padding: '2px 10px', borderRadius: 10,
+                      padding: '1px 8px', borderRadius: 8,
                     }}>
                       {MOOD_EMOJIS[m.mood]} {t(`memories.mood${m.mood.charAt(0).toUpperCase() + m.mood.slice(1)}`, lang)}
                     </div>
                     {/* Delete button */}
-                    <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
-                      <span style={{ fontSize: 16, cursor: 'pointer', opacity: 0.4, padding: 4 }}
+                    <div style={{ position: 'absolute', top: 6, right: 8, display: 'flex', gap: 2 }}>
+                      <span style={{ fontSize: 14, cursor: 'pointer', opacity: 0.3, padding: 2, lineHeight: 1 }}
                         onClick={e => { e.stopPropagation(); deleteMemory(m.id); }}
                         title={lang === 'vi' ? 'Xoá' : 'Delete'}>
                         ✕
