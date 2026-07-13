@@ -367,6 +367,39 @@ html { overscroll-behavior: none; }
 .af-label { font-size: 14px; font-weight: 600; color: var(--color-text-primary); display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .af-value { font-size: 14px; color: var(--color-text-secondary); text-align: right; max-width: 60%; }
 
+/* ===== Field Block (labeled form fields) ===== */
+.field-block {
+  background: #FFFFFF;
+  border: 1px solid #F1F1F4;
+  border-radius: var(--r-card);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-soft);
+}
+.field-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+.field-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: #F1F1F4;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  box-sizing: border-box;
+}
+.field-input:focus { background: #FFFFFF; box-shadow: 0 0 0 2px var(--color-primary); }
+.field-input::placeholder { color: #B0B3B9; font-weight: 400; }
+select.field-input { appearance: none; cursor: pointer; padding-right: 30px; background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+textarea.field-input { min-height: 70px; resize: vertical; }
+
 /* ===== Modal Overlay ===== */
 .modal-overlay {
   position: fixed;

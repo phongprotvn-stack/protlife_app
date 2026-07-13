@@ -183,6 +183,69 @@ function ScoreSelector({ value, onChange }) {
   );
 }
 
+// ─── Single Org Selector: dropdown with existing orgs + add new ───
+function SingleOrgSelector({ label, orgs, value, onChange, addGroup }) {
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+
+  const handleSelect = (e) => {
+    const v = e.target.value;
+    if (v === '__add__') {
+      setAdding(true);
+      return;
+    }
+    setAdding(false);
+    onChange(v);
+  };
+
+  const handleAddOrg = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    if (!orgs.find(g => g.name === trimmed) && addGroup) {
+      try { await addGroup({ name: trimmed, color: '#6366F1' }); } catch {}
+    }
+    onChange(trimmed);
+    setNewName('');
+    setAdding(false);
+  };
+
+  return (
+    <div className="field-block">
+      <div className="field-title">{label}</div>
+      {adding ? (
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input className="field-input" style={{ flex: 1 }}
+            placeholder="Nhập tên tổ chức mới..."
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddOrg(); } }}
+            autoFocus />
+          <button type="button" className="btn-primary" style={{ flex: 'none', padding: '8px 16px', fontSize: 13 }}
+            onClick={handleAddOrg}>Thêm</button>
+          <button type="button" className="btn-secondary" style={{ flex: 'none', padding: '8px 12px', fontSize: 13 }}
+            onClick={() => { setAdding(false); setNewName(''); }}>Huỷ</button>
+        </div>
+      ) : (
+        <div style={{ position: 'relative' }}>
+          <select className="field-input" value={value} onChange={handleSelect}>
+            <option value="">-- Chọn tổ chức --</option>
+            {orgs.map(g => (
+              <option key={g.id} value={g.name}>{g.name}</option>
+            ))}
+            <option value="__add__" style={{ color: '#6366F1', fontWeight: 700 }}>+ Thêm tổ chức mới...</option>
+          </select>
+          {value && (
+            <span style={{
+              position: 'absolute', right: 36, top: '50%', transform: 'translateY(-50%)',
+              fontSize: 10, color: '#10B981', fontWeight: 700, pointerEvents: 'none',
+            }}>✓</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function People({ people, tags, groups, onSelectPerson, addPerson, updatePerson, addGroup, updateGroup, deleteGroup }) {
   const { lang } = useApp();
   const [search, setSearch] = useState('');
@@ -585,93 +648,129 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
               {editingPerson ? t('people.editPerson', lang) : t('people.addPerson', lang)}
             </div>
 
-            <form onSubmit={e => { e.preventDefault(); handleSubmit(); }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <form onSubmit={e => { e.preventDefault(); handleSubmit(); }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* ── THÔNG TIN CƠ BẢN ── */}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>Thông tin cơ bản</div>
-              {/* Tên */}
-              <input className="input-pill" placeholder={t('people.name', lang)}
-                value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
 
-              {/* Giới tính + Ngày sinh */}
+              {/* Họ tên */}
+              <div className="field-block">
+                <div className="field-title">👤 Họ tên</div>
+                <input className="field-input" placeholder={t('people.name', lang)}
+                  value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
+              </div>
+
+              {/* Giới tính + Ngày sinh — side by side */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <select className="input-pill" value={form.gender}
-                  onChange={e => setForm(p => ({ ...p, gender: e.target.value }))}>
-                  <option value="male">Nam</option>
-                  <option value="female">Nữ</option>
-                  <option value="other">Khác</option>
-                </select>
-                <input className="input-pill" placeholder="dd/mm/yyyy" value={form.dob}
-                  onChange={formatDobInput} maxLength={10} />
+                <div className="field-block" style={{ padding: '12px 14px' }}>
+                  <div className="field-title">⚤ Giới tính</div>
+                  <select className="field-input" value={form.gender}
+                    onChange={e => setForm(p => ({ ...p, gender: e.target.value }))}>
+                    <option value="male">Nam</option>
+                    <option value="female">Nữ</option>
+                    <option value="other">Khác</option>
+                  </select>
+                </div>
+                <div className="field-block" style={{ padding: '12px 14px' }}>
+                  <div className="field-title">🎂 Ngày sinh</div>
+                  <input className="field-input" placeholder="dd/mm/yyyy" value={form.dob}
+                    onChange={formatDobInput} maxLength={10} />
+                </div>
               </div>
 
               {/* ── THÔNG TIN LIÊN HỆ ── */}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 }}>Thông tin liên hệ</div>
+
               {/* Số điện thoại */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Số điện thoại</div>
+              <div className="field-block">
+                <div className="field-title">📞 Số điện thoại</div>
                 <MultiInput values={form.phones} onChange={v => setForm(p => ({ ...p, phones: v }))} placeholder="Thêm số điện thoại..." />
               </div>
+
               {/* Email */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Email</div>
+              <div className="field-block">
+                <div className="field-title">📧 Email</div>
                 <MultiInput values={form.emails} onChange={v => setForm(p => ({ ...p, emails: v }))} placeholder="Thêm email..." />
               </div>
+
               {/* Địa chỉ */}
-              <input className="input-pill" placeholder={t('people.address', lang)}
-                value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} />
+              <div className="field-block">
+                <div className="field-title">📍 Địa chỉ</div>
+                <input className="field-input" placeholder={t('people.address', lang)}
+                  value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} />
+              </div>
+
               {/* Link mạng xã hội */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Link mạng xã hội</div>
+              <div className="field-block">
+                <div className="field-title">🔗 Link mạng xã hội</div>
                 <SocialLinksInput links={form.socialLinks}
                   onChange={v => setForm(p => ({ ...p, socialLinks: v }))} />
               </div>
 
               {/* ── PHÂN LOẠI ── */}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 }}>Phân loại</div>
-              {/* Mối quan hệ (Nhóm) */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Nhóm</div>
-                <select className="input-pill" value={form.relationship}
-                  onChange={e => setForm(p => ({ ...p, relationship: e.target.value }))}>
-                  <option value="">-- Chọn nhóm --</option>
-                  {RELATIONSHIP_GROUPS.map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                  <option value="__custom__">+ Thêm nhóm mới...</option>
-                </select>
-                {form.relationship === '__custom__' && (
-                  <input className="input-pill" style={{ marginTop: 6 }}
-                    placeholder="Nhập tên nhóm mới..."
-                    value={form.customGroup}
-                    onChange={e => setForm(p => ({ ...p, customGroup: e.target.value }))} />
-                )}
+
+              {/* Mối quan hệ — tag chips */}
+              <div className="field-block">
+                <div className="field-title">👥 Mối quan hệ</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {RELATIONSHIP_GROUPS.map(g => {
+                    const sel = form.relationship === g;
+                    return (
+                      <div key={g}
+                        className={`chip ${sel ? 'active' : ''}`}
+                        style={{ flex: '0 0 auto', cursor: 'pointer' }}
+                        onClick={() => setForm(p => ({ ...p, relationship: sel ? '' : g }))}>
+                        {g}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              {/* Tổ chức (từ groups collection) */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Tổ chức</div>
-                <GroupSelector
-                  groups={groups}
-                  values={form.organizations}
-                  onChange={v => setForm(p => ({ ...p, organizations: v }))}
-                  addGroup={addGroup}
-                />
-              </div>
+
+              {/* Tổ chức 1 */}
+              <SingleOrgSelector
+                label="🏢 Tổ chức 1"
+                orgs={orgs}
+                value={form.organizations[0] || ''}
+                onChange={v => {
+                  const arr = [...form.organizations];
+                  arr[0] = v;
+                  if (v && !arr[1]) arr[1] = '';
+                  setForm(p => ({ ...p, organizations: arr }));
+                }}
+                addGroup={addGroup}
+              />
+
+              {/* Tổ chức 2 */}
+              <SingleOrgSelector
+                label="🏢 Tổ chức 2"
+                orgs={orgs}
+                value={form.organizations[1] || ''}
+                onChange={v => {
+                  const arr = [...form.organizations];
+                  arr[1] = v;
+                  setForm(p => ({ ...p, organizations: arr }));
+                }}
+                addGroup={addGroup}
+              />
 
               {/* ── THIẾT LẬP THÊM ── */}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 }}>Thiết lập thêm</div>
+
               {/* Điểm thân thiết */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF' }}>Điểm thân thiết</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#E6002D' }}>{form.relationshipScore}</div>
+              <div className="field-block">
+                <div className="field-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>❤️ Điểm thân thiết</span>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: '#E6002D' }}>{form.relationshipScore}</span>
                 </div>
                 <ScoreSelector value={form.relationshipScore}
                   onChange={v => setForm(p => ({ ...p, relationshipScore: v }))} />
               </div>
+
               {/* Trạng thái */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Trạng thái</div>
-                <select className="input-pill" value={form.status}
+              <div className="field-block">
+                <div className="field-title">📌 Trạng thái</div>
+                <select className="field-input" value={form.status}
                   onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
                   <option value="Active">Active</option>
                   <option value="Lost Contact">Lost Contact</option>
@@ -679,44 +778,27 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
                   <option value="Blocked">Blocked</option>
                 </select>
               </div>
+
               {/* Yêu thích */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input type="checkbox" id="favToggle" checked={form.isFavorite}
-                  onChange={e => setForm(p => ({ ...p, isFavorite: e.target.checked }))}
-                  style={{ width: 20, height: 20, accentColor: '#E6002D' }} />
-                <label htmlFor="favToggle" style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                  Yêu thích 🌟
+              <div className="field-block">
+                <div className="field-title">🌟 Yêu thích</div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '2px 0' }}>
+                  <input type="checkbox" checked={form.isFavorite}
+                    onChange={e => setForm(p => ({ ...p, isFavorite: e.target.checked }))}
+                    style={{ width: 22, height: 22, accentColor: '#E6002D', cursor: 'pointer' }} />
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
+                    {form.isFavorite ? '✅ Đã yêu thích' : '☐ Chưa yêu thích'}
+                  </span>
                 </label>
               </div>
-              {/* Nguồn */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Nguồn dữ liệu</div>
-                <input className="input-pill" placeholder="VD: Excel Import, Manual..."
-                  value={form.source} onChange={e => setForm(p => ({ ...p, source: e.target.value }))} />
-              </div>
-              {/* Tags (old-style) */}
-              {tags.length > 0 && (
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 6 }}>Thẻ (Tags)</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {tags.map(tag => {
-                      const sel = form.tags.some(t => t.id === tag.id);
-                      return (
-                        <div key={tag.id}
-                          className={`chip ${sel ? 'active' : ''}`}
-                          onClick={() => toggleFormTag(tag)}
-                          style={sel ? {} : { borderLeft: `3px solid ${tag.color}` }}>
-                          {tag.nameVI || tag.nameEN}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+
               {/* Ghi chú */}
-              <textarea className="input-pill" placeholder={t('people.notes', lang)}
-                value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                style={{ minHeight: 60, resize: 'vertical' }} />
+              <div className="field-block">
+                <div className="field-title">📝 Ghi chú</div>
+                <textarea className="field-input" placeholder={t('people.notes', lang)}
+                  value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                  style={{ minHeight: 70, resize: 'vertical' }} />
+              </div>
 
               {/* Actions */}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
