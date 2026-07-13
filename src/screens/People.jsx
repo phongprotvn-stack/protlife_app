@@ -175,65 +175,93 @@ function ScoreSelector({ value, onChange }) {
   );
 }
 
-// ─── Single Org Selector: dropdown with existing orgs + add new ───
-function SingleOrgSelector({ label, orgs, value, onChange, addGroup }) {
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState('');
+// ─── Single Org Selector: combobox with search + add new + delete ───
+function SingleOrgSelector({ label, orgs, value, onChange, addGroup, deleteGroup }) {
+  const [input, setInput] = useState('');
+  const [focused, setFocused] = useState(false);
+  const adding = input.trim().length > 0 && !orgs.some(g => g.name.toLowerCase() === input.trim().toLowerCase());
 
-  const handleSelect = (e) => {
-    const v = e.target.value;
-    if (v === '__add__') {
-      setAdding(true);
-      return;
-    }
-    setAdding(false);
-    onChange(v);
+  const filtered = orgs.filter(g =>
+    g.name.toLowerCase().includes(input.toLowerCase())
+  ).slice(0, 30);
+
+  const handleSelect = (name) => {
+    onChange(name);
+    setInput('');
+    setFocused(false);
   };
 
-  const handleAddOrg = async () => {
-    const trimmed = newName.trim();
+  const handleClear = () => onChange('');
+
+  const handleDelete = async (org, e) => {
+    e.stopPropagation();
+    if (!window.confirm(`Xoá tổ chức "${org.name}"?`)) return;
+    try { if (deleteGroup) await deleteGroup(org.id); } catch {}
+    if (value === org.name) onChange('');
+  };
+
+  const handleAddNew = async () => {
+    const trimmed = input.trim();
     if (!trimmed) return;
-    if (!orgs.find(g => g.name === trimmed) && addGroup) {
+    if (!orgs.some(g => g.name === trimmed) && addGroup) {
       try { await addGroup({ name: trimmed, color: '#6366F1' }); } catch {}
     }
     onChange(trimmed);
-    setNewName('');
-    setAdding(false);
+    setInput('');
+    setFocused(false);
   };
 
   return (
     <div className="field-block">
       <div className="field-title">{label}</div>
-      {adding ? (
-        <div style={{ display: 'flex', gap: 6 }}>
-          <input className="field-input" style={{ flex: 1 }}
-            placeholder="Nhập tên tổ chức mới..."
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddOrg(); } }}
-            autoFocus />
-          <button type="button" className="btn-primary" style={{ flex: 'none', padding: '8px 16px', fontSize: 13 }}
-            onClick={handleAddOrg}>Thêm</button>
-          <button type="button" className="btn-secondary" style={{ flex: 'none', padding: '8px 12px', fontSize: 13 }}
-            onClick={() => { setAdding(false); setNewName(''); }}>Huỷ</button>
-        </div>
-      ) : (
-        <div style={{ position: 'relative' }}>
-          <select className="field-input" value={value} onChange={handleSelect}>
-            <option value="">-- Chọn tổ chức --</option>
-            {orgs.map(g => (
-              <option key={g.id} value={g.name}>{g.name}</option>
+      <div style={{ position: 'relative' }}>
+        {value ? (
+          <div className="chip active" style={{ width: '100%', justifyContent: 'space-between', boxSizing: 'border-box', minHeight: 32 }}>
+            <span style={{ fontSize: 13 }}>{value}</span>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <X size={14} onClick={handleClear} style={{ cursor: 'pointer' }} title="Xoá lựa chọn" />
+            </div>
+          </div>
+        ) : (
+          <input className="field-input" placeholder="Gõ tên tổ chức..."
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setTimeout(() => setFocused(false), 200)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && adding) { e.preventDefault(); handleAddNew(); }
+              else if (e.key === 'Enter' && filtered.length === 1) { handleSelect(filtered[0].name); }
+            }} />
+        )}
+        {focused && !value && input.length >= 0 && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, marginTop: 4,
+            background: '#fff', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+            maxHeight: 220, overflowY: 'auto',
+          }}>
+            {filtered.map(g => (
+              <div key={g.id}
+                style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                onMouseDown={() => handleSelect(g.name)}
+                onMouseEnter={e => e.currentTarget.style.background = '#F1F1F4'}
+                onMouseLeave={e => e.currentTarget.style.background = ''}>
+                <span>{g.name}</span>
+                <X size={12} onMouseDown={e => handleDelete(g, e)}
+                  style={{ color: '#E6002D', cursor: 'pointer', opacity: 0.6 }} title="Xoá tổ chức" />
+              </div>
             ))}
-            <option value="__add__" style={{ color: '#6366F1', fontWeight: 700 }}>+ Thêm tổ chức mới...</option>
-          </select>
-          {value && (
-            <span style={{
-              position: 'absolute', right: 36, top: '50%', transform: 'translateY(-50%)',
-              fontSize: 10, color: '#10B981', fontWeight: 700, pointerEvents: 'none',
-            }}>✓</span>
-          )}
-        </div>
-      )}
+            {adding && (
+              <div style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, color: '#6366F1', fontWeight: 700, borderTop: '1px solid #F1F1F4' }}
+                onMouseDown={handleAddNew}>
+                + Thêm tổ chức "{input.trim()}"
+              </div>
+            )}
+            {!input && filtered.length === 0 && (
+              <div style={{ padding: '10px 14px', fontSize: 13, color: '#9CA3AF' }}>Chưa có tổ chức nào</div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -672,16 +700,16 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
               {/* ── THÔNG TIN LIÊN HỆ ── */}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 }}>Thông tin liên hệ</div>
 
-              {/* Số điện thoại */}
-              <div className="field-block">
-                <div className="field-title">Số điện thoại</div>
-                <MultiInput values={form.phones} onChange={v => setForm(p => ({ ...p, phones: v }))} placeholder="Thêm số điện thoại..." />
-              </div>
-
-              {/* Email */}
-              <div className="field-block">
-                <div className="field-title">Email</div>
-                <MultiInput values={form.emails} onChange={v => setForm(p => ({ ...p, emails: v }))} placeholder="Thêm email..." />
+              {/* Số điện thoại + Email — side by side */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div className="field-block" style={{ padding: '12px 14px' }}>
+                  <div className="field-title">Số điện thoại</div>
+                  <MultiInput values={form.phones} onChange={v => setForm(p => ({ ...p, phones: v }))} placeholder="Thêm số điện thoại..." />
+                </div>
+                <div className="field-block" style={{ padding: '12px 14px' }}>
+                  <div className="field-title">Email</div>
+                  <MultiInput values={form.emails} onChange={v => setForm(p => ({ ...p, emails: v }))} placeholder="Thêm email..." />
+                </div>
               </div>
 
               {/* Địa chỉ */}
@@ -731,6 +759,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
                   setForm(p => ({ ...p, organizations: arr }));
                 }}
                 addGroup={addGroup}
+                deleteGroup={deleteGroup}
               />
 
               {/* Tổ chức 2 */}
@@ -744,6 +773,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
                   setForm(p => ({ ...p, organizations: arr }));
                 }}
                 addGroup={addGroup}
+                deleteGroup={deleteGroup}
               />
 
               {/* ── THIẾT LẬP THÊM ── */}
