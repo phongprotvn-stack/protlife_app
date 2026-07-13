@@ -33,15 +33,16 @@ const DEFAULT_TAGS = [
 const DEFAULT_SETTINGS = { lang: 'vi', loggedIn: false, displayName: 'PROT', email: '', userId: '' };
 
 const SCORE_LEVELS = [
-  { min: 0, max: 39, key: 'scoreDistant', emoji: '👤' },
-  { min: 40, max: 59, key: 'scoreAcquainted', emoji: '👋' },
-  { min: 60, max: 79, key: 'scoreFriendly', emoji: '👍' },
-  { min: 80, max: 94, key: 'scoreClose', emoji: '💪' },
-  { min: 95, max: 100, key: 'scoreVeryClose', emoji: '🔥' },
+  { min: 1, max: 29, key: 'scoreAcquainted', emoji: '⚪', color: '#9CA3AF' },
+  { min: 30, max: 49, key: 'scoreFriendly', emoji: '🟢', color: '#10B981' },
+  { min: 50, max: 69, key: 'scoreCloseFriend', emoji: '🔵', color: '#3B82F6' },
+  { min: 70, max: 89, key: 'scoreIntimate', emoji: '🟣', color: '#8B5CF6' },
+  { min: 90, max: 100, key: 'scoreSoulmate', emoji: '❤️', color: '#E6002D' },
 ];
 
 export function getScoreInfo(score) {
-  return SCORE_LEVELS.find(l => score >= l.min && score <= l.max) || SCORE_LEVELS[4];
+  if (score <= 0) return { min: 0, max: 0, key: 'scoreNone', emoji: '👤', color: '#D1D5DB' };
+  return SCORE_LEVELS.find(l => score >= l.min && score <= l.max) || SCORE_LEVELS[0];
 }
 
 function loadJSON(key, def) {

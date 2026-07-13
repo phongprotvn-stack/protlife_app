@@ -19,11 +19,11 @@ const RELATIONSHIP_GROUPS = [
 ].sort((a, b) => a.localeCompare(b, 'vi'));
 
 const SCORE_LEVELS = [
-  { range: [0, 39], key: 'scoreDistant', label: 'Xã giao', emoji: '👤' },
-  { range: [40, 59], key: 'scoreAcquainted', label: 'Quen biết', emoji: '👋' },
-  { range: [60, 79], key: 'scoreFriendly', label: 'Thân', emoji: '👍' },
-  { range: [80, 94], key: 'scoreClose', label: 'Thân thiết', emoji: '💪' },
-  { range: [95, 100], key: 'scoreVeryClose', label: 'Ruột thịt', emoji: '🔥' },
+  { range: [1, 29], key: 'scoreAcquainted', label: 'Quen biết', emoji: '⚪' },
+  { range: [30, 49], key: 'scoreFriendly', label: 'Bạn bè', emoji: '🟢' },
+  { range: [50, 69], key: 'scoreCloseFriend', label: 'Thân', emoji: '🔵' },
+  { range: [70, 89], key: 'scoreIntimate', label: 'Thân thiết', emoji: '🟣' },
+  { range: [90, 100], key: 'scoreSoulmate', label: 'Ruột thịt', emoji: '❤️' },
 ];
 
 const DEFAULT_SOCIAL = { platform: 'facebook', url: '' };
@@ -561,8 +561,8 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
 
                 {/* Score */}
                 <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#E6002D' }}>{p.relationshipScore || 0}</div>
-                  <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600 }}>{s.emoji}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: s.color || '#E6002D' }}>{s.emoji}</div>
+                  <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600 }}>{p.relationshipScore || 0}</div>
                 </div>
 
                 {/* Edit button */}

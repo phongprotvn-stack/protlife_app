@@ -17,11 +17,11 @@ const RELATIONSHIP_GROUPS = [
 ].sort((a, b) => a.localeCompare(b, 'vi'));
 
 const SCORE_LEVELS = [
-  { range: [0, 39], key: 'scoreDistant', label: 'Xã giao', emoji: '👤' },
-  { range: [40, 59], key: 'scoreAcquainted', label: 'Quen biết', emoji: '👋' },
-  { range: [60, 79], key: 'scoreFriendly', label: 'Thân', emoji: '👍' },
-  { range: [80, 94], key: 'scoreClose', label: 'Thân thiết', emoji: '💪' },
-  { range: [95, 100], key: 'scoreVeryClose', label: 'Ruột thịt', emoji: '🔥' },
+  { range: [1, 29], key: 'scoreAcquainted', label: 'Quen biết', emoji: '⚪' },
+  { range: [30, 49], key: 'scoreFriendly', label: 'Bạn bè', emoji: '🟢' },
+  { range: [50, 69], key: 'scoreCloseFriend', label: 'Thân', emoji: '🔵' },
+  { range: [70, 89], key: 'scoreIntimate', label: 'Thân thiết', emoji: '🟣' },
+  { range: [90, 100], key: 'scoreSoulmate', label: 'Ruột thịt', emoji: '❤️' },
 ];
 const DEFAULT_SOCIAL = { platform: 'facebook', url: '' };
 
@@ -266,14 +266,15 @@ export default function PersonDetail({ person, events, memories, onBack, onDelet
 
       {/* Relationship Score */}
       <div className="card" style={{ marginBottom: 16, textAlign: 'center', padding: 20 }}>
-        <div style={{ fontSize: 48, fontWeight: 900, color: '#E6002D', lineHeight: 1 }}>
-          {person.relationshipScore || 0}
+        <div style={{ fontSize: 36, lineHeight: 1 }}>{s.emoji}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: s.color || '#E6002D', marginTop: 4 }}>
+          {t('people.' + s.key, lang) || s.key}
         </div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#9CA3AF', marginTop: 4 }}>
-          {s.emoji} {t('people.' + s.key, lang) || s.key}
+        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+          {person.relationshipScore || 0} điểm
         </div>
         <div className="score-bar" style={{ marginTop: 12, maxWidth: 200, margin: '12px auto 0' }}>
-          <div className="score-bar-fill" style={{ width: `${person.relationshipScore || 0}%`, background: 'var(--grad-primary)' }} />
+          <div className="score-bar-fill" style={{ width: `${person.relationshipScore || 0}%`, background: s.color || 'var(--grad-primary)' }} />
         </div>
       </div>
 

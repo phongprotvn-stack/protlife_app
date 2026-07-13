@@ -137,7 +137,7 @@ export default function Dashboard({ people, events, memories, places, onShowPlac
         return (
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="title" style={{ marginBottom: 12 }}>
-              😶 {lang === 'vi' ? 'Mối quan hệ mờ nhạt' : 'Distant Relationships'}
+              ⚪ {lang === 'vi' ? 'Quen biết — cần quan tâm hơn' : 'Acquainted — needs attention'}
             </div>
             {distant.map((p, i) => (
               <div key={p.id} style={{
