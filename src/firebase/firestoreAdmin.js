@@ -13,7 +13,7 @@ const {
 
 const firebaseConfig = {
   apiKey: "AIzaSyAOHECF4A8UIgS8M4GFy_Bnt2sk1xFhKpo",
-  authDomain: "protlife.vercel.app",
+  authDomain: "protlife-3dd56.firebaseapp.com",
   projectId: "protlife-3dd56",
   storageBucket: "protlife-3dd56.firebasestorage.app",
   messagingSenderId: "811944642664",

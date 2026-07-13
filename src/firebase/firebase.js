@@ -10,7 +10,7 @@ import {
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAOHECF4A8UIgS8M4GFy_Bnt2sk1xFhKpo',
-  authDomain: 'protlife.vercel.app',
+  authDomain: 'protlife-3dd56.firebaseapp.com',
   projectId: 'protlife-3dd56',
   storageBucket: 'protlife-3dd56.firebasestorage.app',
   messagingSenderId: '811944642664',
@@ -44,13 +44,25 @@ const isStandalone = () => {
 
 export async function signInWithGoogle() {
   if (!auth || !googleProvider) throw new Error('Firebase not initialized');
-  // iOS Safari PWA blocks popups — use redirect instead
+  
+  // iOS PWA / standalone: redirect flow (safe, built-in handler on Firebase Hosting)
   if (isStandalone()) {
     await signInWithRedirect(auth, googleProvider);
-    return null; // redirecting, won't return here
+    return null; // redirecting, won't return
   }
-  const result = await signInWithPopup(auth, googleProvider);
-  return result.user;
+  
+  // Browser (including Safari non-PWA): try popup first
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (e) {
+    // If popup blocked (iOS Safari), fall back to redirect
+    if (e.code === 'auth/popup-blocked') {
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
+    throw e;
+  }
 }
 
 export async function getGoogleRedirectResult() {
