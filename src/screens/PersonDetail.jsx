@@ -5,16 +5,13 @@ import {
   CalendarDays, BookHeart, Edit3, Plus, Mail, Globe, Tag, Users, X
 } from 'lucide-react';
 import { t, formatDate, formatDateInput } from '../i18n';
-import GroupSelector from '../components/GroupSelector';
+import { SingleOrgSelector } from './People';
 import { getScoreInfo } from '../contexts/AppContext';
 
 const SOCIAL_PLATFORMS = ['facebook', 'zalo', 'instagram', 'tiktok', 'youtube', 'twitter', 'linkedin', 'other'];
 const RELATIONSHIP_GROUPS = [
-  'Gia đình ruột', 'Họ hàng', 'Giáo viên chủ nhiệm', 'Bạn thân',
-  'Bạn cấp 1', 'Bạn cấp 2', 'Bạn cấp 3', 'Bạn đại học',
-  'Bạn cao học', 'Bạn bang hội', 'Bạn du lịch', 'Bạn tìm hiểu',
-  'Bạn xã hội', 'Đồng nghiệp cũ', 'Đồng nghiệp mới', 'Khác',
-].sort((a, b) => a.localeCompare(b, 'vi'));
+  'Family', 'Relative', 'Friend', 'Colleague',
+];
 
 const SCORE_LEVELS = [
   { range: [1, 29], key: 'scoreAcquainted', label: 'Quen biết', emoji: '⚪' },
@@ -44,7 +41,7 @@ function normalizePerson(p) {
   };
 }
 
-// ─── Mini Multi-input (same as People.jsx) ───
+// ─── Mini Multi-input (no add button, Enter to add) ───
 function MultiInput({ values, onChange, placeholder }) {
   const [input, setInput] = useState('');
   const add = () => {
@@ -65,14 +62,9 @@ function MultiInput({ values, onChange, placeholder }) {
           </span>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 4 }}>
-        <input className="input-pill" style={{ flex: 1, fontSize: 13, padding: '8px 12px' }}
-          value={input} onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
-          placeholder={placeholder} />
-        <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12, flexShrink: 0 }}
-          onClick={add} type="button">+</button>
-      </div>
+      <input className="field-input" placeholder={placeholder}
+        value={input} onChange={e => setInput(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} />
     </div>
   );
 }
@@ -134,7 +126,7 @@ function ScoreSelector({ value, onChange }) {
   );
 }
 
-export default function PersonDetail({ person, events, memories, onBack, onDelete, onAddInteraction, groups, addGroup }) {
+export default function PersonDetail({ person, events, memories, onBack, onDelete, onAddInteraction, groups, addGroup, deleteGroup }) {
   const { lang, updatePerson } = useApp();
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState(normalizePerson(person));
@@ -145,6 +137,11 @@ export default function PersonDetail({ person, events, memories, onBack, onDelet
   const s = getScoreInfo(person.relationshipScore || 0);
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
   const lastContact = person.lastInteractionDate ? daysBetween(person.lastInteractionDate, today) : null;
+
+  // Compute orgs from groups like People.jsx
+  const orgs = useMemo(() => {
+    return [...groups].sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  }, [groups]);
 
   const interactionTypes = [
     { id: 'meet', label: 'Gặp mặt' },
@@ -388,102 +385,131 @@ export default function PersonDetail({ person, events, memories, onBack, onDelet
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Modal — redesigned with field-block pattern like People.jsx */}
       {showEdit && (
         <div className="modal-overlay" onClick={() => setShowEdit(false)}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: '85vh', overflowY: 'auto' }}>
             <div className="modal-handle" />
             <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>{t('people.editPerson', lang)}</div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <form onSubmit={e => { e.preventDefault(); handleSaveEdit(); }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* ── THÔNG TIN CƠ BẢN ── */}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>Thông tin cơ bản</div>
-              {/* Tên */}
-              <input className="input-pill" placeholder={t('people.name', lang)}
-                value={editForm.name || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} />
 
-              {/* Giới tính + Ngày sinh */}
+              <div className="field-block">
+                <div className="field-title">Họ tên</div>
+                <input className="field-input" placeholder={t('people.name', lang)}
+                  value={editForm.name || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} />
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <select className="input-pill" value={editForm.gender}
-                  onChange={e => setEditForm(p => ({ ...p, gender: e.target.value }))}>
-                  <option value="male">Nam</option>
-                  <option value="female">Nữ</option>
-                  <option value="other">Khác</option>
-                </select>
-                <input className="input-pill" placeholder="dd/mm/yyyy" value={editForm.dob || ''}
-                  onChange={e => {
-                    let v = e.target.value.replace(/[^0-9]/g, '');
-                    if (v.length > 4) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4, 8);
-                    else if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
-                    setEditForm(p => ({ ...p, dob: v }));
-                  }} maxLength={10} />
+                <div className="field-block" style={{ padding: '12px 14px' }}>
+                  <div className="field-title">Giới tính</div>
+                  <select className="field-input" value={editForm.gender}
+                    onChange={e => setEditForm(p => ({ ...p, gender: e.target.value }))}>
+                    <option value="male">Nam</option>
+                    <option value="female">Nữ</option>
+                    <option value="other">Khác</option>
+                  </select>
+                </div>
+                <div className="field-block" style={{ padding: '12px 14px' }}>
+                  <div className="field-title">Ngày sinh</div>
+                  <input className="field-input" placeholder="dd/mm/yyyy" value={editForm.dob || ''}
+                    onChange={e => {
+                      let v = e.target.value.replace(/[^0-9]/g, '');
+                      if (v.length > 4) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4, 8);
+                      else if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+                      setEditForm(p => ({ ...p, dob: v }));
+                    }} maxLength={10} />
+                </div>
               </div>
 
               {/* ── THÔNG TIN LIÊN HỆ ── */}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 }}>Thông tin liên hệ</div>
-              {/* Số điện thoại */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Số điện thoại</div>
-                <MultiInput values={editForm.phones} onChange={v => setEditForm(p => ({ ...p, phones: v }))} placeholder="Thêm số..." />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div className="field-block" style={{ padding: '12px 14px' }}>
+                  <div className="field-title">Số điện thoại</div>
+                  <MultiInput values={editForm.phones} onChange={v => setEditForm(p => ({ ...p, phones: v }))} placeholder="Thêm số..." />
+                </div>
+                <div className="field-block" style={{ padding: '12px 14px' }}>
+                  <div className="field-title">Email</div>
+                  <MultiInput values={editForm.emails} onChange={v => setEditForm(p => ({ ...p, emails: v }))} placeholder="Thêm email..." />
+                </div>
               </div>
-              {/* Email */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Email</div>
-                <MultiInput values={editForm.emails} onChange={v => setEditForm(p => ({ ...p, emails: v }))} placeholder="Thêm email..." />
+
+              <div className="field-block">
+                <div className="field-title">Địa chỉ</div>
+                <input className="field-input" placeholder={t('people.address', lang)}
+                  value={editForm.address || ''} onChange={e => setEditForm(p => ({ ...p, address: e.target.value }))} />
               </div>
-              {/* Địa chỉ */}
-              <input className="input-pill" placeholder={t('people.address', lang)}
-                value={editForm.address || ''} onChange={e => setEditForm(p => ({ ...p, address: e.target.value }))} />
-              {/* Mạng xã hội */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Mạng xã hội</div>
+
+              <div className="field-block">
+                <div className="field-title">Link mạng xã hội</div>
                 <SocialLinksInput links={editForm.socialLinks} onChange={v => setEditForm(p => ({ ...p, socialLinks: v }))} />
               </div>
 
               {/* ── PHÂN LOẠI ── */}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 }}>Phân loại</div>
-              {/* Nhóm */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Nhóm</div>
-                <select className="input-pill" value={editForm.relationship}
-                  onChange={e => setEditForm(p => ({ ...p, relationship: e.target.value, customGroup: '' }))}>
-                  <option value="">-- Chọn nhóm --</option>
-                  {RELATIONSHIP_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
-                  <option value="__custom__">+ Thêm nhóm mới...</option>
-                </select>
-                {editForm.relationship === '__custom__' && (
-                  <input className="input-pill" style={{ marginTop: 6 }}
-                    placeholder="Nhập tên nhóm..."
-                    value={editForm.customGroup}
-                    onChange={e => setEditForm(p => ({ ...p, customGroup: e.target.value }))} />
-                )}
+
+              <div className="field-block">
+                <div className="field-title">Mối quan hệ</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {RELATIONSHIP_GROUPS.map(g => {
+                    const sel = editForm.relationship === g;
+                    return (
+                      <div key={g}
+                        className={`chip ${sel ? 'active' : ''}`}
+                        style={{ flex: '0 0 auto', cursor: 'pointer' }}
+                        onClick={() => setEditForm(p => ({ ...p, relationship: sel ? '' : g }))}>
+                        {g}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              {/* Tổ chức */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Tổ chức</div>
-                <GroupSelector
-                  groups={groups}
-                  values={editForm.organizations || []}
-                  onChange={v => setEditForm(p => ({ ...p, organizations: v }))}
-                  addGroup={addGroup}
-                />
-              </div>
+
+              <SingleOrgSelector
+                label="Tổ chức 1"
+                orgs={orgs}
+                value={editForm.organizations[0] || ''}
+                onChange={v => {
+                  const arr = [...editForm.organizations];
+                  arr[0] = v;
+                  setEditForm(p => ({ ...p, organizations: arr }));
+                }}
+                addGroup={addGroup}
+                deleteGroup={deleteGroup}
+              />
+
+              <SingleOrgSelector
+                label="Tổ chức 2"
+                orgs={orgs}
+                value={editForm.organizations[1] || ''}
+                onChange={v => {
+                  const arr = [...editForm.organizations];
+                  arr[1] = v;
+                  setEditForm(p => ({ ...p, organizations: arr }));
+                }}
+                addGroup={addGroup}
+                deleteGroup={deleteGroup}
+              />
 
               {/* ── THIẾT LẬP THÊM ── */}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 }}>Thiết lập thêm</div>
-              {/* Điểm thân thiết */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF' }}>Điểm thân thiết</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#E6002D' }}>{editForm.relationshipScore}</div>
+
+              <div className="field-block">
+                <div className="field-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Điểm thân thiết</span>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: '#E6002D' }}>{editForm.relationshipScore}</span>
                 </div>
                 <ScoreSelector value={editForm.relationshipScore}
                   onChange={v => setEditForm(p => ({ ...p, relationshipScore: v }))} />
               </div>
-              {/* Trạng thái */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Trạng thái</div>
-                <select className="input-pill" value={editForm.status}
+
+              <div className="field-block">
+                <div className="field-title">Trạng thái</div>
+                <select className="field-input" value={editForm.status}
                   onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))}>
                   <option value="Active">Active</option>
                   <option value="Lost Contact">Lost Contact</option>
@@ -491,36 +517,39 @@ export default function PersonDetail({ person, events, memories, onBack, onDelet
                   <option value="Blocked">Blocked</option>
                 </select>
               </div>
-              {/* Yêu thích */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input type="checkbox" id="editFavToggle" checked={editForm.isFavorite}
-                  onChange={e => setEditForm(p => ({ ...p, isFavorite: e.target.checked }))}
-                  style={{ width: 20, height: 20, accentColor: '#E6002D' }} />
-                <label htmlFor="editFavToggle" style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                  Yêu thích 🌟
-                </label>
-              </div>
-              {/* Nguồn */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Nguồn dữ liệu</div>
-                <input className="input-pill" placeholder="VD: Excel Import, Manual..."
-                  value={editForm.source || ''} onChange={e => setEditForm(p => ({ ...p, source: e.target.value }))} />
-              </div>
-              {/* Ghi chú */}
-              <textarea className="input-pill" placeholder={t('people.notes', lang)}
-                value={editForm.notes || ''} onChange={e => setEditForm(p => ({ ...p, notes: e.target.value }))}
-                style={{ minHeight: 60, resize: 'vertical' }} />
-            </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setShowEdit(false)}>{t('common.cancel', lang)}</button>
-              <button className="btn-primary" style={{ flex: 2 }} onClick={handleSaveEdit}>Cập nhật</button>
-            </div>
+              <div className="field-block">
+                <div className="field-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
+                  <span>Yêu thích</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: '#374151', userSelect: 'none' }}>
+                      {editForm.isFavorite ? 'Đã yêu thích' : 'Chưa yêu thích'}
+                    </span>
+                    <input type="checkbox" checked={editForm.isFavorite}
+                      onChange={e => setEditForm(p => ({ ...p, isFavorite: e.target.checked }))}
+                      style={{ width: 20, height: 20, accentColor: '#E6002D', cursor: 'pointer' }} />
+                  </label>
+                </div>
+              </div>
+
+              <div className="field-block">
+                <div className="field-title">Ghi chú</div>
+                <textarea className="field-input" placeholder={t('people.notes', lang)}
+                  value={editForm.notes || ''}
+                  onChange={e => setEditForm(p => ({ ...p, notes: e.target.value }))}
+                  style={{ minHeight: 70, resize: 'vertical' }} />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button type="button" className="btn-secondary" style={{ flex: 1 }}
+                  onClick={() => setShowEdit(false)}>{t('common.cancel', lang)}</button>
+                <button type="submit" className="btn-primary" style={{ flex: 2 }}
+                  disabled={!editForm.name.trim()}>Cập nhật</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-
-      <div style={{ height: 20 }} />
     </div>
   );
 }

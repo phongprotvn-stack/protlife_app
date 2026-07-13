@@ -176,7 +176,7 @@ function ScoreSelector({ value, onChange }) {
 }
 
 // ─── Single Org Selector: combobox with search + add new + delete ───
-function SingleOrgSelector({ label, orgs, value, onChange, addGroup, deleteGroup }) {
+export function SingleOrgSelector({ label, orgs, value, onChange, addGroup, deleteGroup }) {
   const [input, setInput] = useState('');
   const [focused, setFocused] = useState(false);
   const adding = input.trim().length > 0 && !orgs.some(g => g.name.toLowerCase() === input.trim().toLowerCase());
