@@ -624,17 +624,6 @@ export function AppProvider({ children }) {
   // Auth
   const signInWithGoogle = useCallback(async () => {
     try {
-      // On standalone (iOS PWA from Home Screen), show notice before redirect
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-        || window.navigator.standalone === true;
-      if (isStandalone) {
-        const msg = lang === 'vi'
-          ? '🔄 Bạn sẽ được chuyển đến Google để đăng nhập.\nSau khi đăng nhập xong, quay lại app để tiếp tục.'
-          : '🔄 You\'ll be redirected to Google to sign in.\nAfter signing in, return to this app.';
-        showToast(msg);
-        // Small delay so user sees the message before redirect
-        await new Promise(r => setTimeout(r, 1500));
-      }
       await fbSignInGoogle();
     } catch (e) {
       console.error('🔥 Google Sign-In error:', e.code, e.message);

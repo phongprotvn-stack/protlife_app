@@ -36,30 +36,18 @@ export function onAuthChange(callback) {
   return onAuthStateChanged(auth, callback);
 }
 
-// Detect iOS PWA / standalone mode (home screen app)
-const isStandalone = () => {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || window.navigator.standalone === true;
-};
-
 export async function signInWithGoogle() {
   if (!auth || !googleProvider) throw new Error('Firebase not initialized');
-  
-  // iOS PWA / standalone: redirect flow (safe, built-in handler on Firebase Hosting)
-  if (isStandalone()) {
-    await signInWithRedirect(auth, googleProvider);
-    return null; // redirecting, won't return
-  }
-  
-  // Browser (including Safari non-PWA): try popup first
+
+  // Try popup first (works on iOS PWA — opens Safari tab from user gesture)
+  // Falls back to redirect if popup is blocked
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (e) {
-    // If popup blocked (iOS Safari), fall back to redirect
     if (e.code === 'auth/popup-blocked') {
       await signInWithRedirect(auth, googleProvider);
-      return null;
+      return null; // redirecting, won't return
     }
     throw e;
   }
@@ -102,17 +90,14 @@ export async function syncToFirestore(userId, data) {
   const batch = writeBatch(db);
   for (const coll of COLLECTIONS) {
     const collData = data[coll] || [];
-    // Read existing docs to find what needs deleting
     const existingSnapshot = await getDocs(collection(db, `users/${userId}/${coll}`));
     const existingIds = new Set(existingSnapshot.docs.map(d => d.id));
     const incomingIds = new Set(collData.map(d => d.id));
-    // Delete docs removed from local state
     for (const id of existingIds) {
       if (!incomingIds.has(id)) {
         batch.delete(doc(db, `users/${userId}/${coll}`, id));
       }
     }
-    // Write current docs
     for (const docData of collData) {
       const ref = doc(db, `users/${userId}/${coll}`, docData.id);
       batch.set(ref, docData);
