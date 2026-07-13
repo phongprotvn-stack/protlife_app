@@ -384,16 +384,17 @@ html { overscroll-behavior: none; }
 }
 .field-input {
   width: 100%;
-  padding: 10px 14px;
+  padding: 6px 14px;
   border: none;
   background: #F1F1F4;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   outline: none;
   font-family: inherit;
   color: var(--color-text-primary);
   box-sizing: border-box;
+  min-height: 32px;
 }
 .field-input:focus { background: #FFFFFF; box-shadow: 0 0 0 2px var(--color-primary); }
 .field-input::placeholder { color: #B0B3B9; font-weight: 400; }

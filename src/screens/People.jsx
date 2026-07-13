@@ -12,11 +12,8 @@ import GroupSelector, { GroupManager } from '../components/GroupSelector';
 const SOCIAL_PLATFORMS = ['facebook', 'zalo', 'instagram', 'tiktok', 'youtube', 'twitter', 'linkedin', 'other'];
 
 const RELATIONSHIP_GROUPS = [
-  'Gia đình ruột', 'Họ hàng', 'Giáo viên chủ nhiệm', 'Bạn thân',
-  'Bạn cấp 1', 'Bạn cấp 2', 'Bạn cấp 3', 'Bạn đại học',
-  'Bạn cao học', 'Bạn bang hội', 'Bạn du lịch', 'Bạn tìm hiểu',
-  'Bạn xã hội', 'Đồng nghiệp cũ', 'Đồng nghiệp mới', 'Khác',
-].sort((a, b) => a.localeCompare(b, 'vi'));
+  'Family', 'Relative', 'Friend', 'Colleague',
+];
 
 const SCORE_LEVELS = [
   { range: [1, 29], key: 'scoreAcquainted', label: 'Quen biết', emoji: '⚪' },
@@ -87,7 +84,7 @@ function normalizePerson(p) {
   return base;
 }
 
-// ─── Multi-value text input ───
+// ─── Multi-value text input (no add button, Enter to add) ───
 function MultiInput({ values, onChange, placeholder }) {
   const [input, setInput] = useState('');
   const add = () => {
@@ -108,14 +105,9 @@ function MultiInput({ values, onChange, placeholder }) {
           </span>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 4 }}>
-        <input className="input-pill" style={{ flex: 1, fontSize: 13, padding: '8px 12px' }}
-          value={input} onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
-          placeholder={placeholder} />
-        <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12, flexShrink: 0 }}
-          onClick={add} type="button">+</button>
-      </div>
+      <input className="field-input" placeholder={placeholder}
+        value={input} onChange={e => setInput(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} />
     </div>
   );
 }
@@ -654,7 +646,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
 
               {/* Họ tên */}
               <div className="field-block">
-                <div className="field-title">👤 Họ tên</div>
+                <div className="field-title">Họ tên</div>
                 <input className="field-input" placeholder={t('people.name', lang)}
                   value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
               </div>
@@ -662,7 +654,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
               {/* Giới tính + Ngày sinh — side by side */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div className="field-block" style={{ padding: '12px 14px' }}>
-                  <div className="field-title">⚤ Giới tính</div>
+                  <div className="field-title">Giới tính</div>
                   <select className="field-input" value={form.gender}
                     onChange={e => setForm(p => ({ ...p, gender: e.target.value }))}>
                     <option value="male">Nam</option>
@@ -671,7 +663,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
                   </select>
                 </div>
                 <div className="field-block" style={{ padding: '12px 14px' }}>
-                  <div className="field-title">🎂 Ngày sinh</div>
+                  <div className="field-title">Ngày sinh</div>
                   <input className="field-input" placeholder="dd/mm/yyyy" value={form.dob}
                     onChange={formatDobInput} maxLength={10} />
                 </div>
@@ -682,26 +674,26 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
 
               {/* Số điện thoại */}
               <div className="field-block">
-                <div className="field-title">📞 Số điện thoại</div>
+                <div className="field-title">Số điện thoại</div>
                 <MultiInput values={form.phones} onChange={v => setForm(p => ({ ...p, phones: v }))} placeholder="Thêm số điện thoại..." />
               </div>
 
               {/* Email */}
               <div className="field-block">
-                <div className="field-title">📧 Email</div>
+                <div className="field-title">Email</div>
                 <MultiInput values={form.emails} onChange={v => setForm(p => ({ ...p, emails: v }))} placeholder="Thêm email..." />
               </div>
 
               {/* Địa chỉ */}
               <div className="field-block">
-                <div className="field-title">📍 Địa chỉ</div>
+                <div className="field-title">Địa chỉ</div>
                 <input className="field-input" placeholder={t('people.address', lang)}
                   value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} />
               </div>
 
               {/* Link mạng xã hội */}
               <div className="field-block">
-                <div className="field-title">🔗 Link mạng xã hội</div>
+                <div className="field-title">Link mạng xã hội</div>
                 <SocialLinksInput links={form.socialLinks}
                   onChange={v => setForm(p => ({ ...p, socialLinks: v }))} />
               </div>
@@ -711,7 +703,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
 
               {/* Mối quan hệ — tag chips */}
               <div className="field-block">
-                <div className="field-title">👥 Mối quan hệ</div>
+                <div className="field-title">Mối quan hệ</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {RELATIONSHIP_GROUPS.map(g => {
                     const sel = form.relationship === g;
@@ -729,7 +721,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
 
               {/* Tổ chức 1 */}
               <SingleOrgSelector
-                label="🏢 Tổ chức 1"
+                label="Tổ chức 1"
                 orgs={orgs}
                 value={form.organizations[0] || ''}
                 onChange={v => {
@@ -743,7 +735,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
 
               {/* Tổ chức 2 */}
               <SingleOrgSelector
-                label="🏢 Tổ chức 2"
+                label="Tổ chức 2"
                 orgs={orgs}
                 value={form.organizations[1] || ''}
                 onChange={v => {
@@ -760,7 +752,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
               {/* Điểm thân thiết */}
               <div className="field-block">
                 <div className="field-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>❤️ Điểm thân thiết</span>
+                <span>Điểm thân thiết</span>
                   <span style={{ fontSize: 18, fontWeight: 800, color: '#E6002D' }}>{form.relationshipScore}</span>
                 </div>
                 <ScoreSelector value={form.relationshipScore}
@@ -769,7 +761,7 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
 
               {/* Trạng thái */}
               <div className="field-block">
-                <div className="field-title">📌 Trạng thái</div>
+                <div className="field-title">Trạng thái</div>
                 <select className="field-input" value={form.status}
                   onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
                   <option value="Active">Active</option>
@@ -781,20 +773,22 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
 
               {/* Yêu thích */}
               <div className="field-block">
-                <div className="field-title">🌟 Yêu thích</div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '2px 0' }}>
-                  <input type="checkbox" checked={form.isFavorite}
-                    onChange={e => setForm(p => ({ ...p, isFavorite: e.target.checked }))}
-                    style={{ width: 22, height: 22, accentColor: '#E6002D', cursor: 'pointer' }} />
-                  <span style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
-                    {form.isFavorite ? '✅ Đã yêu thích' : '☐ Chưa yêu thích'}
-                  </span>
-                </label>
+                <div className="field-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
+                  <span>Yêu thích</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: '#374151', userSelect: 'none' }}>
+                      {form.isFavorite ? 'Đã yêu thích' : 'Chưa yêu thích'}
+                    </span>
+                    <input type="checkbox" checked={form.isFavorite}
+                      onChange={e => setForm(p => ({ ...p, isFavorite: e.target.checked }))}
+                      style={{ width: 20, height: 20, accentColor: '#E6002D', cursor: 'pointer' }} />
+                  </label>
+                </div>
               </div>
 
               {/* Ghi chú */}
               <div className="field-block">
-                <div className="field-title">📝 Ghi chú</div>
+                <div className="field-title">Ghi chú</div>
                 <textarea className="field-input" placeholder={t('people.notes', lang)}
                   value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
                   style={{ minHeight: 70, resize: 'vertical' }} />
