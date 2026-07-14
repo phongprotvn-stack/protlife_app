@@ -183,29 +183,51 @@ function ScoreSelector({ value, onChange }) {
   );
 }
 
-// ─── Single Org Selector: combobox with search + add new + delete ───
+// ─── Single Org Selector: click-to-open dropdown with search + add/delete ───
 export function SingleOrgSelector({ label, orgs, value, onChange, addGroup, deleteGroup }) {
+  const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
-  const [focused, setFocused] = useState(false);
-  const adding = input.trim().length > 0 && !orgs.some(g => g.name.toLowerCase() === input.trim().toLowerCase());
+  const ref = useRef(null);
 
-  const filtered = orgs.filter(g =>
-    g.name.toLowerCase().includes(input.toLowerCase())
-  ).slice(0, 30);
+  // Close on click/tap outside
+  useEffect(() => {
+    const handler = e => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
+  }, []);
 
-  const handleSelect = (name) => {
+  const filtered = useMemo(() => {
+    const q = input.trim().toLowerCase();
+    if (!q) return orgs.slice(0, 40);
+    return orgs.filter(g => g.name.toLowerCase().includes(q)).slice(0, 40);
+  }, [orgs, input]);
+
+  const adding = useMemo(() => {
+    const q = input.trim();
+    return q.length > 0 && !orgs.some(g => g.name.toLowerCase() === q.toLowerCase());
+  }, [orgs, input]);
+
+  const handleSelect = name => {
     onChange(name);
+    setOpen(false);
     setInput('');
-    setFocused(false);
   };
 
-  const handleClear = () => onChange('');
+  const handleClear = e => {
+    e.stopPropagation();
+    onChange('');
+  };
 
   const handleDelete = async (org, e) => {
     e.stopPropagation();
+    if (org.id === null) return; // can't delete a non-saved org
     if (!window.confirm(`Xoá tổ chức "${org.name}"?`)) return;
     try { if (deleteGroup) await deleteGroup(org.id); } catch {}
     if (value === org.name) onChange('');
+    // force re-render: org with this name disappears from list after deletion
   };
 
   const handleAddNew = async () => {
@@ -214,62 +236,84 @@ export function SingleOrgSelector({ label, orgs, value, onChange, addGroup, dele
     if (!orgs.some(g => g.name === trimmed) && addGroup) {
       try { await addGroup({ name: trimmed, color: '#6366F1' }); } catch {}
     }
-    onChange(trimmed);
-    setInput('');
-    setFocused(false);
+    handleSelect(trimmed);
   };
 
   return (
-    <div className="field-block">
+    <div className="field-block" ref={ref} style={{ position: 'relative' }}>
       <div className="field-title">{label}</div>
-      <div style={{ position: 'relative' }}>
+      {/* Clickable trigger */}
+      <div
+        onClick={() => setOpen(!open)}
+        className="field-input"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, padding: '6px 14px', cursor: 'pointer' }}
+      >
         {value ? (
-          <div className="chip active" style={{ width: '100%', justifyContent: 'space-between', boxSizing: 'border-box', minHeight: 32 }}>
-            <span style={{ fontSize: 13 }}>{value}</span>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <X size={14} onClick={handleClear} style={{ cursor: 'pointer' }} title="Xoá lựa chọn" />
-            </div>
+          <div className="chip active"
+            style={{ margin: 0, fontSize: 13, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>{value}</span>
+            <X size={14} onClick={handleClear} style={{ cursor: 'pointer' }} />
           </div>
         ) : (
-          <input className="field-input" placeholder="Gõ tên tổ chức..."
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setTimeout(() => setFocused(false), 200)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && adding) { e.preventDefault(); handleAddNew(); }
-              else if (e.key === 'Enter' && filtered.length === 1) { handleSelect(filtered[0].name); }
-            }} />
+          <span style={{ color: '#9CA3AF', fontSize: 13, fontWeight: 400 }}>
+            {label === 'Tổ chức 1' ? '9A, Bạn cao học, …' : 'Sư đoàn Mõm, …'}
+          </span>
         )}
-        {focused && !value && input.length >= 0 && (
-          <div style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, marginTop: 4,
-            background: '#fff', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-            maxHeight: 220, overflowY: 'auto',
-          }}>
-            {filtered.map(g => (
-              <div key={g.id}
-                style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                onMouseDown={() => handleSelect(g.name)}
-                onMouseEnter={e => e.currentTarget.style.background = '#F1F1F4'}
-                onMouseLeave={e => e.currentTarget.style.background = ''}>
-                <span>{g.name}</span>
-                <X size={12} onMouseDown={e => handleDelete(g, e)}
-                  style={{ color: '#E6002D', cursor: 'pointer', opacity: 0.6 }} title="Xoá tổ chức" />
-              </div>
-            ))}
-            {adding && (
-              <div style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, color: '#6366F1', fontWeight: 700, borderTop: '1px solid #F1F1F4' }}
-                onMouseDown={handleAddNew}>
-                + Thêm tổ chức "{input.trim()}"
-              </div>
-            )}
-            {!input && filtered.length === 0 && (
-              <div style={{ padding: '10px 14px', fontSize: 13, color: '#9CA3AF' }}>Chưa có tổ chức nào</div>
-            )}
-          </div>
-        )}
+        <ChevronDown size={16} color="#9CA3AF"
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
       </div>
+      {/* Dropdown panel */}
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, marginTop: 4,
+          background: '#fff', borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+          border: '1px solid #F1F1F4', maxHeight: 260, overflow: 'auto',
+        }}>
+          {/* Search box */}
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid #F1F1F4' }}>
+            <input className="field-input"
+              placeholder="Gõ tên tổ chức…"
+              value={input} onChange={e => setInput(e.target.value)}
+              style={{ margin: 0, padding: '8px 12px', fontSize: 13 }}
+              autoFocus />
+          </div>
+          {/* Items */}
+          {filtered.map(g => (
+            <div key={g.id || g.name}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 14px', cursor: 'pointer', fontSize: 13,
+                background: value === g.name ? '#F5F3FF' : 'transparent',
+                borderBottom: '1px solid #F9FAFB',
+              }}
+              onClick={() => handleSelect(g.name)}>
+              <span style={{ fontWeight: value === g.name ? 700 : 400 }}>{g.name}</span>
+              {deleteGroup && g.id !== null && (
+                <span onClick={e => handleDelete(g, e)}
+                  style={{ color: '#EF4444', cursor: 'pointer', padding: 2, opacity: 0.6 }}>
+                  <X size={14} />
+                </span>
+              )}
+            </div>
+          ))}
+          {/* Add new */}
+          {adding && (
+            <div onClick={handleAddNew}
+              style={{
+                padding: '10px 14px', cursor: 'pointer', fontSize: 13,
+                color: '#6366F1', fontWeight: 700, borderTop: '1px solid #F1F1F4',
+              }}>
+              + Thêm tổ chức "{input.trim()}"
+            </div>
+          )}
+          {/* Empty state */}
+          {filtered.length === 0 && !adding && (
+            <div style={{ padding: 14, fontSize: 13, color: '#9CA3AF', textAlign: 'center' }}>
+              Chưa có tổ chức nào
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -295,15 +339,66 @@ export default function People({ people, tags, groups, onSelectPerson, addPerson
     return [...groups].sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   }, [groups]);
 
-  // Filtered orgs for Tổ chức 1 & Tổ chức 2 (from predefined lists + current selection)
+  // Filtered orgs for Tổ chức 1 & Tổ chức 2
+  // Always show predefined names from Excel even if not yet in `groups` collection
   const org1List = useMemo(() => {
+    const groupsByName = {};
+    orgs.forEach(g => { groupsByName[g.name] = g; });
     const current = form.organizations[0];
-    return orgs.filter(g => ORG1_NAMES.has(g.name) || g.name === current);
+    const items = [];
+    // 1) Add all predefined Org 1 names
+    ORG1_NAMES.forEach(name => {
+      const existing = groupsByName[name];
+      items.push({
+        id: existing?.id ?? null,
+        name,
+        color: existing?.color ?? '#6366F1',
+      });
+    });
+    // 2) Add current selection if not already in list
+    if (current && !items.some(i => i.name === current)) {
+      const existing = groupsByName[current];
+      items.push({
+        id: existing?.id ?? null,
+        name: current,
+        color: existing?.color ?? '#6366F1',
+      });
+    }
+    // 3) Add any other orgs from groups collection (e.g. ones added via "Thêm mới")
+    orgs.forEach(g => {
+      if (!items.some(i => i.name === g.name)) items.push(g);
+    });
+    return items.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   }, [orgs, form.organizations[0]]);
 
   const org2List = useMemo(() => {
+    const groupsByName = {};
+    orgs.forEach(g => { groupsByName[g.name] = g; });
     const current = form.organizations[1];
-    return orgs.filter(g => ORG2_NAMES.has(g.name) || g.name === current);
+    const items = [];
+    // 1) Add all predefined Org 2 names
+    ORG2_NAMES.forEach(name => {
+      const existing = groupsByName[name];
+      items.push({
+        id: existing?.id ?? null,
+        name,
+        color: existing?.color ?? '#6366F1',
+      });
+    });
+    // 2) Add current selection if not already in list
+    if (current && !items.some(i => i.name === current)) {
+      const existing = groupsByName[current];
+      items.push({
+        id: existing?.id ?? null,
+        name: current,
+        color: existing?.color ?? '#6366F1',
+      });
+    }
+    // 3) Add any other orgs from groups collection
+    orgs.forEach(g => {
+      if (!items.some(i => i.name === g.name)) items.push(g);
+    });
+    return items.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   }, [orgs, form.organizations[1]]);
 
   const filtered = useMemo(() => {

@@ -151,15 +151,46 @@ export default function PersonDetail({ person, events, memories, onBack, onDelet
     return [...groups].sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   }, [groups]);
 
-  // Filtered orgs for Tổ chức 1 & Tổ chức 2 (from predefined lists + current selection)
+  // Filtered orgs for Tổ chức 1 & Tổ chức 2
+  // Always show predefined names from Excel even if not yet in `groups` collection
   const org1List = useMemo(() => {
+    const groupsByName = {};
+    orgs.forEach(g => { groupsByName[g.name] = g; });
     const current = editForm.organizations[0];
-    return orgs.filter(g => ORG1_NAMES.has(g.name) || g.name === current);
+    const items = [];
+    // 1) Add all predefined Org 1 names
+    ORG1_NAMES.forEach(name => {
+      const existing = groupsByName[name];
+      items.push({ id: existing?.id ?? null, name, color: existing?.color ?? '#6366F1' });
+    });
+    // 2) Add current selection if not already in list
+    if (current && !items.some(i => i.name === current)) {
+      const existing = groupsByName[current];
+      items.push({ id: existing?.id ?? null, name: current, color: existing?.color ?? '#6366F1' });
+    }
+    // 3) Add any other orgs from groups collection
+    orgs.forEach(g => { if (!items.some(i => i.name === g.name)) items.push(g); });
+    return items.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   }, [orgs, editForm.organizations[0]]);
 
   const org2List = useMemo(() => {
+    const groupsByName = {};
+    orgs.forEach(g => { groupsByName[g.name] = g; });
     const current = editForm.organizations[1];
-    return orgs.filter(g => ORG2_NAMES.has(g.name) || g.name === current);
+    const items = [];
+    // 1) Add all predefined Org 2 names
+    ORG2_NAMES.forEach(name => {
+      const existing = groupsByName[name];
+      items.push({ id: existing?.id ?? null, name, color: existing?.color ?? '#6366F1' });
+    });
+    // 2) Add current selection if not already in list
+    if (current && !items.some(i => i.name === current)) {
+      const existing = groupsByName[current];
+      items.push({ id: existing?.id ?? null, name: current, color: existing?.color ?? '#6366F1' });
+    }
+    // 3) Add any other orgs from groups collection
+    orgs.forEach(g => { if (!items.some(i => i.name === g.name)) items.push(g); });
+    return items.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   }, [orgs, editForm.organizations[1]]);
 
   const interactionTypes = [
